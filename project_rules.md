@@ -148,15 +148,68 @@ Reference Data → Validate Information → ↗ ↙ → Human Review (Optional)
 
 #### Required n8n Nodes
 - **Core Nodes**: HTTP Request, Set, IF, Switch, Merge
-- **File Handling**: Read/Write Binary Data, PDF Parse, Spreadsheet File
+- **File Handling**: Read/Write Binary Data, PDF Parse, Spreadsheet File, Extract From File
 - **AI Integration**: HTTP Request (for main LLM API), Vision API nodes (for image processing)
 - **Utilities**: Code, Function, DateTime, Crypto
+- **Document Processing**: Markdown, HTML, Convert to File
 
 #### External Dependencies
 - **PDF Processing**: pdf-parse, pdf2pic for image extraction
 - **Image Handling**: Sharp, Jimp for preprocessing
 - **Validation Libraries**: Joi, Yup for data validation
 - **Documentation**: JSDoc for inline documentation
+
+#### n8n Workflow JSON Format Standards
+
+##### Basic Workflow Structure
+```json
+{
+  "name": "Workflow Name",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "unique-node-id",
+      "name": "Node Display Name",
+      "type": "NodeType",
+      "typeVersion": 1,
+      "position": [x, y]
+    }
+  ],
+  "connections": {
+    "Node Name": {
+      "main": [
+        [
+          {
+            "node": "Target Node Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "workflow-version-id",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
+```
+
+##### Node Configuration Requirements
+- **Unique IDs**: Each node must have a unique UUID-style identifier
+- **Position Coordinates**: Visual positioning for workflow canvas [x, y]
+- **Type Versioning**: Specify node type version for compatibility
+- **Parameter Validation**: All required parameters must be present
+- **Connection Mapping**: Precise node-to-node connection definitions
+
+##### Import/Export Best Practices
+- **Credential Handling**: Remove sensitive credentials before export
+- **Environment Variables**: Use placeholder values for environment-specific settings
+- **Version Compatibility**: Test workflows across different n8n versions
+- **Documentation**: Include workflow description and setup instructions
+- **Validation**: Verify JSON structure before import attempts
 
 ### 11. Testing and Validation
 
@@ -208,9 +261,65 @@ Reference Data → Validate Information → ↗ ↙ → Human Review (Optional)
 - **Variable Usage**: Clarify data transformations and mappings
 - **Performance Notes**: Explain optimization decisions
 
+### 15. Workflow Template Management
+
+#### Template Organization Standards
+- **Naming Convention**: `[Category]_[Purpose]_[Version].json`
+  - Example: `Document_PDF_Analysis_v1.2.json`
+- **Category System**: Group templates by function (Document, Vision, QA, Integration)
+- **Version Control**: Semantic versioning for template iterations
+- **Description Standard**: Clear, concise workflow purpose and requirements
+
+#### Template Library Structure
+```
+templates/
+├── document-processing/
+│   ├── pdf-extraction/
+│   ├── markdown-processing/
+│   └── image-text-integration/
+├── quality-assurance/
+│   ├── human-review/
+│   ├── validation-gates/
+│   └── approval-workflows/
+├── ai-integration/
+│   ├── text-llm/
+│   ├── vision-processing/
+│   └── context-integration/
+└── utilities/
+    ├── error-handling/
+    ├── data-transformation/
+    └── notification-systems/
+```
+
+#### Import/Export Workflow
+1. **Pre-Export Checklist**
+   - Remove or replace sensitive credentials with placeholders
+   - Document required external dependencies
+   - Include setup instructions in workflow description
+   - Validate all node connections and parameters
+
+2. **Template Documentation**
+   - Purpose and use case description
+   - Required credentials and API keys
+   - Setup and configuration steps
+   - Expected input/output formats
+   - Known limitations and considerations
+
+3. **Import Validation Process**
+   - JSON structure verification
+   - Node compatibility check
+   - Credential requirement review
+   - Test execution with sample data
+
+#### Sharing and Collaboration
+- **Internal Repository**: Maintain organization-specific template library
+- **Community Sharing**: Contribute to n8n community template marketplace
+- **Documentation Standards**: Include README files with each template
+- **Change Management**: Track template modifications and improvements
+
 ## Continuous Improvement
 
-### 14. Monitoring and Optimization
+### 16. Monitoring and Optimization
 
 #### Key Metrics
 - **Accuracy Rate**: Percentage of correct document analysis
