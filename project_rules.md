@@ -1,0 +1,228 @@
+# Project Rules for n8n Document Workflow Development
+
+## Core Development Principles
+
+### 1. Workflow Design Philosophy
+- **Information Accuracy First**: Every workflow must prioritize data integrity and verification
+- **Human-in-the-Loop Ready**: Design workflows with optional human validation points for critical decisions
+- **Modular Architecture**: Build reusable components for common document processing tasks
+- **Error Resilience**: Implement comprehensive error handling and fallback mechanisms
+
+### 2. Communication Efficiency
+- **Batch Confirmations**: Group related questions into single interactions
+- **Flexible Solutions**: Provide multiple viable options rather than seeking single perfect answers
+- **Context Preservation**: Maintain conversation state across workflow development sessions
+- **Minimal Round-trips**: Aim to resolve issues with comprehensive initial responses
+
+## Technical Standards
+
+### 3. File Processing Architecture
+
+#### PDF Document Handling
+```
+PDF Input → Text Extraction → Image Extraction → Parallel Processing
+├── Text Content → Gemini-2.5 Analysis
+└── Images → Dedicated Vision Pipeline → Gemini-2.5 Multimodal
+```
+
+#### Markdown Processing
+```
+MD Input → Content Parsing → Asset Discovery → Processing Pipeline
+├── Text Content → Direct Gemini-2.5 Processing
+├── Embedded Images → Vision Pipeline
+└── References/Links → Validation & Context Extraction
+```
+
+### 4. Gemini-2.5 Integration Guidelines
+
+#### Model Configuration
+- **Temperature**: 0.1-0.3 for document analysis (precision focus)
+- **Max Tokens**: Optimize based on document length and complexity
+- **Safety Settings**: Enable for content moderation in document review
+- **Response Format**: Structured JSON for programmatic processing
+
+#### Image Processing Strategy
+- **Separate Vision Nodes**: Use dedicated image analysis nodes before main LLM processing
+- **Image Preprocessing**: Resize/optimize images for optimal Gemini-2.5 vision performance
+- **Context Injection**: Combine image analysis results with text content for comprehensive understanding
+
+### 5. Workflow Component Standards
+
+#### Required Modules for Document Workflows
+1. **Input Validation Node**
+   - File type verification
+   - Size limits enforcement
+   - Security scanning
+
+2. **Content Extraction Pipeline**
+   - PDF text extraction (OCR fallback)
+   - Image extraction and cataloging
+   - Metadata preservation
+
+3. **Quality Assurance Gates**
+   - Content completeness checks
+   - Information accuracy validation
+   - Cross-reference verification
+
+4. **Human Review Integration**
+   - Configurable approval points
+   - Review queue management
+   - Feedback incorporation mechanisms
+
+5. **Output Standardization**
+   - Consistent formatting
+   - Version control integration
+   - Change tracking
+
+## Development Workflow
+
+### 6. Rapid Development Process
+
+#### Initial Setup Checklist
+- [ ] Define document types and expected inputs
+- [ ] Identify critical accuracy requirements
+- [ ] Determine human review points
+- [ ] Map information flow dependencies
+- [ ] Establish output format requirements
+
+#### Iterative Development Cycle
+1. **Prototype Core Flow** (30% functionality)
+2. **Add Error Handling** (60% functionality)
+3. **Integrate Quality Gates** (80% functionality)
+4. **Optimize Performance** (95% functionality)
+5. **User Acceptance Testing** (100% functionality)
+
+### 7. Context Engineering Best Practices
+
+#### Prompt Engineering for Document Tasks
+- **Task-Specific Prompts**: Customize prompts for different document types
+- **Chain-of-Thought**: Use structured reasoning for complex analysis
+- **Output Templates**: Define consistent response formats
+- **Context Windows**: Manage long document processing efficiently
+
+#### Information Comparison Workflows
+```
+Source Document A → Extract Key Points → Compare → Generate Report
+Source Document B → Extract Key Points → ↗ Analysis ↘ → Quality Check
+Reference Data → Validate Information → ↗ ↙ → Human Review (Optional)
+```
+
+### 8. Quality Assurance Framework
+
+#### Automated Validation
+- **Fact Checking**: Cross-reference claims against reliable sources
+- **Consistency Verification**: Ensure internal document coherence
+- **Format Compliance**: Validate output against style guidelines
+- **Completeness Assessment**: Verify all required sections are present
+
+#### Human-in-the-Loop Triggers
+- **High Stakes Decisions**: Financial, legal, or safety-critical content
+- **Conflicting Information**: When sources provide contradictory data
+- **Low Confidence Scores**: When AI analysis uncertainty is high
+- **User-Defined Criteria**: Custom business rules for review requirements
+
+## Implementation Guidelines
+
+### 9. Node Configuration Standards
+
+#### Error Handling Patterns
+```json
+{
+  "errorHandling": {
+    "retryAttempts": 3,
+    "fallbackBehavior": "human_review",
+    "logLevel": "detailed",
+    "notificationChannels": ["email", "webhook"]
+  }
+}
+```
+
+#### Performance Optimization
+- **Parallel Processing**: Run independent tasks simultaneously
+- **Caching Strategy**: Store frequently accessed reference data
+- **Batch Operations**: Group similar operations for efficiency
+- **Resource Management**: Monitor and limit API usage
+
+### 10. Development Environment Setup
+
+#### Required n8n Nodes
+- **Core Nodes**: HTTP Request, Set, IF, Switch, Merge
+- **File Handling**: Read/Write Binary Data, PDF Parse, Spreadsheet File
+- **AI Integration**: HTTP Request (for Gemini API), OpenAI (if needed)
+- **Utilities**: Code, Function, DateTime, Crypto
+
+#### External Dependencies
+- **PDF Processing**: pdf-parse, pdf2pic for image extraction
+- **Image Handling**: Sharp, Jimp for preprocessing
+- **Validation Libraries**: Joi, Yup for data validation
+- **Documentation**: JSDoc for inline documentation
+
+### 11. Testing and Validation
+
+#### Test Data Management
+- **Sample Documents**: Maintain library of test PDFs and Markdown files
+- **Edge Cases**: Include corrupted, oversized, and unusual format files
+- **Reference Outputs**: Golden standard results for comparison
+- **Performance Benchmarks**: Response time and accuracy metrics
+
+#### Validation Checklist
+- [ ] Input validation handles all expected file types
+- [ ] Image extraction preserves quality and context
+- [ ] Text extraction maintains formatting where relevant
+- [ ] Gemini-2.5 integration handles API errors gracefully
+- [ ] Human review points are clearly marked and functional
+- [ ] Output formatting meets specification requirements
+- [ ] Error messages are informative and actionable
+
+## Collaboration Guidelines
+
+### 12. Development Communication
+
+#### When to Ask Questions
+- **Ambiguous Requirements**: When multiple interpretations are possible
+- **Technical Constraints**: When facing platform or API limitations
+- **User Experience Decisions**: When UX choices impact workflow design
+- **Performance Trade-offs**: When optimization requires feature compromises
+
+#### When to Provide Options
+- **Implementation Approaches**: Multiple valid technical solutions
+- **UI/UX Variations**: Different user interaction patterns
+- **Integration Methods**: Various ways to connect external services
+- **Validation Strategies**: Different levels of quality assurance
+
+### 13. Documentation Standards
+
+#### Workflow Documentation
+- **Purpose Statement**: Clear description of workflow objectives
+- **Input/Output Specifications**: Detailed format requirements
+- **Decision Points**: Logic for branching and conditional flows
+- **Dependencies**: External services and data requirements
+- **Maintenance Notes**: Update procedures and troubleshooting
+
+#### Code Comments
+- **Node Descriptions**: Explain complex logic in custom code nodes
+- **API Configurations**: Document endpoint URLs and authentication
+- **Variable Usage**: Clarify data transformations and mappings
+- **Performance Notes**: Explain optimization decisions
+
+## Continuous Improvement
+
+### 14. Monitoring and Optimization
+
+#### Key Metrics
+- **Accuracy Rate**: Percentage of correct document analysis
+- **Processing Time**: Average workflow completion duration
+- **Error Frequency**: Rate of failures and their categories
+- **User Satisfaction**: Feedback on output quality and usefulness
+
+#### Regular Review Schedule
+- **Weekly**: Performance metrics and error analysis
+- **Monthly**: User feedback incorporation and feature updates
+- **Quarterly**: Workflow architecture review and optimization
+- **Annually**: Technology stack evaluation and upgrade planning
+
+---
+
+*Last Updated: [Current Date]*
+*Version: 1.0*
+*Next Review: [Quarterly Review Date]*
