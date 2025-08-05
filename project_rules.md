@@ -21,19 +21,19 @@
 #### PDF Document Handling
 ```
 PDF Input → Text Extraction → Image Extraction → Parallel Processing
-├── Text Content → Gemini-2.5 Analysis
-└── Images → Dedicated Vision Pipeline → Gemini-2.5 Multimodal
+├── Text Content → Main LLM Analysis
+└── Images → Dedicated Vision Pipeline → Text Description → Context Integration
 ```
 
 #### Markdown Processing
 ```
 MD Input → Content Parsing → Asset Discovery → Processing Pipeline
-├── Text Content → Direct Gemini-2.5 Processing
-├── Embedded Images → Vision Pipeline
+├── Text Content → Direct Main LLM Processing
+├── Embedded Images → Vision Pipeline → Text Description → Context Integration
 └── References/Links → Validation & Context Extraction
 ```
 
-### 4. Gemini-2.5 Integration Guidelines
+### 4. LLM Integration Guidelines
 
 #### Model Configuration
 - **Temperature**: 0.1-0.3 for document analysis (precision focus)
@@ -42,9 +42,10 @@ MD Input → Content Parsing → Asset Discovery → Processing Pipeline
 - **Response Format**: Structured JSON for programmatic processing
 
 #### Image Processing Strategy
-- **Separate Vision Nodes**: Use dedicated image analysis nodes before main LLM processing
-- **Image Preprocessing**: Resize/optimize images for optimal Gemini-2.5 vision performance
-- **Context Injection**: Combine image analysis results with text content for comprehensive understanding
+- **Separate Vision Pipeline**: Use dedicated multimodal models for image analysis since main LLM is text-only
+- **Image Preprocessing**: Resize/optimize images for optimal vision model performance
+- **Context Integration**: Combine image analysis results with text content before main LLM processing
+- **Vision-to-Text Bridge**: Convert visual information to structured text descriptions for main LLM consumption
 
 ### 5. Workflow Component Standards
 
@@ -148,7 +149,7 @@ Reference Data → Validate Information → ↗ ↙ → Human Review (Optional)
 #### Required n8n Nodes
 - **Core Nodes**: HTTP Request, Set, IF, Switch, Merge
 - **File Handling**: Read/Write Binary Data, PDF Parse, Spreadsheet File
-- **AI Integration**: HTTP Request (for Gemini API), OpenAI (if needed)
+- **AI Integration**: HTTP Request (for main LLM API), Vision API nodes (for image processing)
 - **Utilities**: Code, Function, DateTime, Crypto
 
 #### External Dependencies
@@ -169,7 +170,9 @@ Reference Data → Validate Information → ↗ ↙ → Human Review (Optional)
 - [ ] Input validation handles all expected file types
 - [ ] Image extraction preserves quality and context
 - [ ] Text extraction maintains formatting where relevant
-- [ ] Gemini-2.5 integration handles API errors gracefully
+- [ ] Vision pipeline converts images to meaningful text descriptions
+- [ ] Main LLM integration handles API errors gracefully
+- [ ] Context integration between vision and text works seamlessly
 - [ ] Human review points are clearly marked and functional
 - [ ] Output formatting meets specification requirements
 - [ ] Error messages are informative and actionable
