@@ -18,33 +18,248 @@
 
 ### 3. File Processing Architecture
 
-#### PDF Document Handling
+#### PDF Document Handling with Dual-LLM Architecture
 ```
-PDF Input → Text Extraction → Image Extraction → Parallel Processing
-├── Text Content → Main LLM Analysis
-└── Images → Dedicated Vision Pipeline → Text Description → Context Integration
+PDF Input → Text Extraction → Image Extraction → Task Classification
+├── Simple Extraction Tasks → Standard LLM Pool
+│   ├── Basic Text Cleanup
+│   ├── Format Standardization  
+│   ├── Initial Categorization
+│   └── Template Population
+├── Complex Analysis Tasks → Premium LLM
+│   ├── Cross-Reference Analysis
+│   ├── Quality Assessment
+│   ├── Strategic Synthesis
+│   └── Final Validation
+└── Images → Vision Pipeline → Tier-Appropriate Analysis
+    ├── Basic Description → Standard LLM
+    └── Complex Interpretation → Premium LLM
 ```
 
-#### Markdown Processing
+#### Markdown Processing with Intelligent Task Routing
 ```
-MD Input → Content Parsing → Asset Discovery → Processing Pipeline
-├── Text Content → Direct Main LLM Processing
-├── Embedded Images → Vision Pipeline → Text Description → Context Integration
-└── References/Links → Validation & Context Extraction
+MD Input → Content Parsing → Asset Discovery → Task Classification Router
+├── Routine Processing → Standard LLM Pipeline
+│   ├── Text Content Extraction
+│   ├── Format Conversion
+│   ├── Basic Validation
+│   └── Template Filling
+├── Complex Analysis → Premium LLM Pipeline  
+│   ├── Cross-Document Comparison
+│   ├── Quality Critical Decisions
+│   ├── Nuanced Interpretation
+│   └── Strategic Recommendations
+└── Mixed Content Processing
+    ├── Images → Vision Pipeline → Tier Classification
+    ├── References/Links → Standard LLM Validation
+    └── Context Integration → Premium LLM Synthesis
 ```
 
-### 4. LLM Integration Guidelines
+### 4. Dual-LLM Architecture and Task Classification
 
-#### Model Configuration
-- **Temperature**: 0.1-0.3 for document analysis (precision focus)
-- **Max Tokens**: Optimize based on document length and complexity
-- **Safety Settings**: Enable for content moderation in document review
-- **Response Format**: Structured JSON for programmatic processing
+#### LLM Tier Configuration
+
+##### Premium LLM (High-Performance, Cost-Sensitive)
+```json
+{
+  "premiumLLM": {
+    "model": "advanced_model_identifier",
+    "characteristics": {
+      "reasoning": "complex_analysis_capable",
+      "context_window": "large_context_support",
+      "accuracy": "high_precision_output",
+      "cost": "usage_based_billing"
+    },
+    "configuration": {
+      "temperature": 0.1,
+      "maxTokens": "dynamic_optimization",
+      "responseFormat": "structured_json",
+      "systemPrompt": "detailed_context_injection"
+    },
+    "usage_optimization": {
+      "callMinimization": true,
+      "batchProcessing": "when_possible",
+      "caching": "aggressive_caching",
+      "preprocessing": "essential_content_only"
+    }
+  }
+}
+```
+
+##### Standard LLM (Efficient, Cost-Effective)
+```json
+{
+  "standardLLM": {
+    "model": "standard_model_identifier",
+    "characteristics": {
+      "reasoning": "straightforward_tasks",
+      "context_window": "moderate_context",
+      "accuracy": "sufficient_for_simple_tasks",
+      "cost": "free_or_low_cost"
+    },
+    "configuration": {
+      "temperature": 0.2,
+      "maxTokens": "task_appropriate",
+      "responseFormat": "structured_json",
+      "systemPrompt": "focused_task_context"
+    },
+    "usage_strategy": {
+      "highVolume": true,
+      "preprocessing": "standard_preparation",
+      "parallelization": "extensive_parallel_use"
+    }
+  }
+}
+```
+
+#### Task Classification Framework
+
+##### Complexity Assessment Matrix
+```json
+{
+  "taskClassification": {
+    "premium_tier_tasks": {
+      "criteria": [
+        "complex_reasoning_required",
+        "cross_document_analysis",
+        "nuanced_interpretation",
+        "quality_critical_decisions",
+        "ambiguity_resolution",
+        "strategic_synthesis"
+      ],
+      "examples": [
+        "comprehensive_document_comparison",
+        "complex_information_validation",
+        "final_quality_assessment",
+        "contradiction_resolution",
+        "strategic_recommendation_generation"
+      ]
+    },
+    "standard_tier_tasks": {
+      "criteria": [
+        "straightforward_extraction",
+        "format_conversion",
+        "simple_classification",
+        "basic_validation",
+        "routine_processing",
+        "template_population"
+      ],
+      "examples": [
+        "text_extraction_from_pdf",
+        "basic_formatting_cleanup",
+        "simple_data_validation",
+        "routine_categorization",
+        "standard_template_filling",
+        "basic_summarization"
+      ]
+    }
+  }
+}
+```
+
+##### Automatic Task Router Configuration
+```javascript
+// Task Classification and Routing Logic
+function classifyTask(taskData) {
+  const complexityIndicators = {
+    crossReferenceRequired: taskData.sourceCount > 1,
+    ambiguityPresent: taskData.uncertaintyMarkers?.length > 0,
+    qualityCritical: taskData.stakes === 'high',
+    reasoningDepth: taskData.analysisType === 'complex',
+    contextDependency: taskData.contextRequirement === 'extensive',
+    synthesisRequired: taskData.outputType === 'strategic'
+  };
+  
+  const complexityScore = Object.values(complexityIndicators)
+    .filter(Boolean).length;
+  
+  return {
+    tier: complexityScore >= 3 ? 'premium' : 'standard',
+    reasoning: complexityIndicators,
+    confidence: complexityScore >= 5 ? 'high' : 
+                complexityScore >= 2 ? 'medium' : 'low'
+  };
+}
+```
+
+#### Task Decomposition Strategies
+
+##### Complex Task Breakdown Pattern
+```
+Original Complex Task
+├── Information Extraction (Standard LLM)
+│   ├── Text extraction from sources
+│   ├── Basic data validation
+│   └── Initial categorization
+├── Preprocessing (Standard LLM)
+│   ├── Format standardization
+│   ├── Content organization
+│   └── Reference preparation
+└── Analysis & Synthesis (Premium LLM)
+    ├── Cross-reference analysis
+    ├── Quality assessment
+    ├── Strategic synthesis
+    └── Final recommendations
+```
+
+##### Decomposition Implementation
+```json
+{
+  "taskDecomposition": {
+    "preprocessing_phase": {
+      "llm_tier": "standard",
+      "tasks": [
+        "content_extraction",
+        "basic_cleanup",
+        "format_standardization",
+        "initial_categorization"
+      ],
+      "output_preparation": "structured_data_for_premium_analysis"
+    },
+    "analysis_phase": {
+      "llm_tier": "premium",
+      "tasks": [
+        "complex_reasoning",
+        "cross_document_analysis",
+        "quality_validation",
+        "synthesis_generation"
+      ],
+      "input_optimization": "preprocessed_and_focused_content"
+    },
+    "post_processing": {
+      "llm_tier": "standard",
+      "tasks": [
+        "format_finalization",
+        "template_population",
+        "routine_validation",
+        "output_formatting"
+      ]
+    }
+  }
+}
+```
+
+#### Cost-Optimized Workflow Design
+
+##### Premium LLM Call Optimization
+- **Content Preprocessing**: Use Standard LLM to clean and prepare content
+- **Context Distillation**: Extract only essential information for Premium analysis
+- **Batch Processing**: Combine multiple simple analyses into single Premium calls
+- **Result Caching**: Cache Premium LLM results for similar future tasks
+- **Iterative Refinement**: Use Standard LLM for draft iterations, Premium for final polish
+
+##### Standard LLM Maximization
+- **High-Volume Processing**: Handle bulk extraction and formatting tasks
+- **Parallel Execution**: Run multiple Standard LLM tasks simultaneously
+- **Iterative Processing**: Use for multiple draft iterations before Premium review
+- **Template-Based Tasks**: Handle routine, template-driven operations
 
 #### Image Processing Strategy
-- **Separate Vision Pipeline**: Use dedicated multimodal models for image analysis since main LLM is text-only
+- **Separate Vision Pipeline**: Use dedicated multimodal models for image analysis since main LLMs are text-only
 - **Image Preprocessing**: Resize/optimize images for optimal vision model performance
-- **Context Integration**: Combine image analysis results with text content before main LLM processing
+- **Dual-Tier Image Analysis**:
+  - **Standard Tier**: Basic image description and text extraction
+  - **Premium Tier**: Complex visual analysis and contextual interpretation
 - **Vision-to-Text Bridge**: Convert visual information to structured text descriptions for main LLM consumption
 
 ### 5. Workflow Component Standards
@@ -309,26 +524,91 @@ Source Document B → Context-Aware Extraction →                Generate Repor
 }
 ```
 
-##### LLM API Node Configuration Template
+##### Dual-LLM Node Configuration Templates
+
+###### Task Router Node
+```javascript
+// Intelligent Task Classification Node
+const taskData = items[0].json;
+
+function classifyTaskComplexity(task) {
+  const indicators = {
+    multiDocument: (task.sources?.length || 1) > 1,
+    ambiguityPresent: task.content?.includes('unclear') || task.uncertainties?.length > 0,
+    crossReference: task.requiresComparison === true,
+    qualityCritical: task.priority === 'high' || task.stakes === 'critical',
+    complexReasoning: task.analysisType === 'complex' || task.reasoning === 'advanced',
+    synthesis: task.outputType === 'strategic' || task.requiresSynthesis === true,
+    contextHeavy: (task.context?.length || 0) > 1000,
+    nuancedInterpretation: task.requiresNuance === true
+  };
+  
+  const complexity = Object.values(indicators).filter(Boolean).length;
+  
+  return {
+    tier: complexity >= 3 ? 'premium' : 'standard',
+    score: complexity,
+    indicators: indicators,
+    routing: {
+      llmModel: complexity >= 3 ? 'premium_model' : 'standard_model',
+      preprocessing: complexity >= 3 ? 'essential_only' : 'standard',
+      caching: complexity >= 3 ? 'aggressive' : 'normal'
+    }
+  };
+}
+
+const classification = classifyTaskComplexity(taskData);
+return [{ json: { ...taskData, classification } }];
+```
+
+###### Premium LLM Node Configuration
 ```json
 {
-  "llmConfiguration": {
-    "model": "text_model_identifier",
+  "premiumLLMConfiguration": {
+    "model": "{{$json.classification.routing.llmModel}}",
     "parameters": {
       "temperature": 0.1,
-      "maxTokens": "dynamic_based_on_content",
-      "systemPrompt": "{{$json.system_context.role_prompt}}",
+      "maxTokens": "{{$json.content.length > 2000 ? 'large' : 'medium'}}",
+      "systemPrompt": "{{$json.system_context.premium_role_prompt}}",
       "structuredOutput": true
     },
-    "contextInjection": {
-      "memoryRetrieval": "{{$('ContextManager').all()[0].json}}",
-      "sessionContinuity": "{{$json.session_id}}",
-      "promptTemplate": "predefined_template_id"
+    "costOptimization": {
+      "preprocessedInput": "{{$('ContentDistiller').all()[0].json.essentialContent}}",
+      "batchingEnabled": true,
+      "cachingStrategy": "aggressive",
+      "retryLogic": "minimal_retries"
     },
-    "outputProcessing": {
-      "validation": "json_schema_validation",
-      "memoryExtraction": "automated",
-      "errorHandling": "structured_fallback"
+    "contextInjection": {
+      "memoryRetrieval": "{{$('ContextManager').all()[0].json.longTerm}}",
+      "preprocessedData": "{{$('StandardLLM_Preprocessor').all()[0].json}}",
+      "sessionContinuity": "{{$json.session_id}}"
+    }
+  }
+}
+```
+
+###### Standard LLM Node Configuration
+```json
+{
+  "standardLLMConfiguration": {
+    "model": "{{$json.classification.routing.llmModel}}",
+    "parameters": {
+      "temperature": 0.2,
+      "maxTokens": "standard",
+      "systemPrompt": "{{$json.system_context.standard_role_prompt}}",
+      "structuredOutput": true
+    },
+    "volumeOptimization": {
+      "parallelProcessing": true,
+      "batchSize": "large",
+      "rapidIteration": true,
+      "standardCaching": true
+    },
+    "taskFocus": {
+      "extractionTasks": "high_volume",
+      "formattingTasks": "automated",
+      "basicValidation": "enabled",
+      "preprocessing": "comprehensive"
     }
   }
 }
@@ -401,12 +681,66 @@ return memoryOperations.map(op => ({ json: op }));
 }
 ```
 
-#### Performance Optimization with Context Awareness
-- **Parallel Processing**: Run independent tasks simultaneously while maintaining context consistency
-- **Intelligent Caching**: Cache context patterns and frequent document structures
-- **Batch Operations**: Group similar operations while preserving individual context
-- **Context-Aware Resource Management**: Optimize API usage based on context complexity and memory requirements
-- **Memory Optimization**: Implement intelligent memory pruning and consolidation strategies
+#### Dual-LLM Workflow Design Patterns
+
+##### Standard-to-Premium Pipeline
+```
+Input Document
+↓
+Standard LLM: Content Extraction & Cleanup
+↓
+Standard LLM: Initial Categorization & Formatting
+↓
+Content Distillation & Context Preparation
+↓
+Premium LLM: Complex Analysis & Synthesis
+↓
+Standard LLM: Final Formatting & Template Population
+↓
+Output Document
+```
+
+##### Parallel Processing with Intelligent Routing
+```
+Input Tasks
+↓
+Task Classification Router
+├── Simple Tasks → Standard LLM Pool (Parallel)
+│   ├── Text Extraction
+│   ├── Format Conversion  
+│   ├── Basic Validation
+│   └── Template Filling
+└── Complex Tasks → Premium LLM (Sequential)
+    ├── Cross-Document Analysis
+    ├── Quality Assessment
+    ├── Strategic Synthesis
+    └── Final Recommendations
+↓
+Results Merger & Quality Gate
+↓
+Unified Output
+```
+
+##### Cost-Optimized Iterative Refinement
+```
+Draft Generation (Standard LLM)
+↓
+Quality Check (Automated Rules)
+├── Pass → Standard LLM Final Polish
+└── Fail → Premium LLM Review & Enhancement
+    ↓
+    Premium Analysis Results
+    ↓
+    Standard LLM Implementation of Changes
+```
+
+#### Performance Optimization with Dual-LLM Architecture
+- **Intelligent Task Distribution**: Route complex reasoning to Premium LLM, routine tasks to Standard LLM
+- **Context-Aware Preprocessing**: Use Standard LLM to prepare optimized inputs for Premium LLM
+- **Aggressive Caching**: Cache Premium LLM results extensively, Standard LLM moderately
+- **Parallel Standard Processing**: Run multiple Standard LLM tasks simultaneously
+- **Premium Call Minimization**: Batch multiple analyses, use only for critical decisions
+- **Memory Optimization**: Implement tier-appropriate memory strategies for each LLM type
 
 ### 10. Development Environment Setup
 
@@ -506,6 +840,15 @@ return memoryOperations.map(op => ({ json: op }));
   - [ ] Memory storage and retrieval mechanisms function correctly
   - [ ] Context data is properly cleaned and optimized
   - [ ] Memory backup and recovery procedures are tested
+- [ ] **Dual-LLM Architecture Validation**:
+  - [ ] Task classification router correctly identifies complexity levels
+  - [ ] Premium LLM is used only for high-complexity tasks
+  - [ ] Standard LLM handles volume processing efficiently
+  - [ ] Cost optimization strategies are properly implemented
+  - [ ] Task decomposition follows established patterns
+  - [ ] Results from both LLM tiers integrate seamlessly
+  - [ ] Premium LLM call frequency is minimized and optimized
+  - [ ] Standard LLM preprocessing effectively prepares content for Premium analysis
 
 ## Collaboration Guidelines
 
