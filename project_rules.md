@@ -93,20 +93,173 @@ MD Input → Content Parsing → Asset Discovery → Processing Pipeline
 4. **Optimize Performance** (95% functionality)
 5. **User Acceptance Testing** (100% functionality)
 
-### 7. Context Engineering Best Practices
+### 7. Context Engineering and Memory Management
 
-#### Prompt Engineering for Document Tasks
-- **Task-Specific Prompts**: Customize prompts for different document types
-- **Chain-of-Thought**: Use structured reasoning for complex analysis
-- **Output Templates**: Define consistent response formats
-- **Context Windows**: Manage long document processing efficiently
+#### Structured Input/Output Framework for LLM Modules
 
-#### Information Comparison Workflows
+##### Universal LLM Node Input Structure
+```json
+{
+  "system_context": {
+    "role": "document_analyst|quality_checker|content_reviewer",
+    "task_type": "extraction|comparison|validation|synthesis",
+    "workflow_stage": "initial|intermediate|final",
+    "session_id": "unique_session_identifier"
+  },
+  "memory_context": {
+    "short_term": {
+      "current_document": {
+        "type": "pdf|markdown|mixed",
+        "metadata": {},
+        "previous_extractions": []
+      },
+      "immediate_history": "last_3_interactions",
+      "current_findings": []
+    },
+    "long_term": {
+      "workflow_patterns": "learned_document_structures",
+      "quality_standards": "established_validation_criteria",
+      "user_preferences": "customization_settings",
+      "error_patterns": "common_issues_and_solutions"
+    }
+  },
+  "task_specification": {
+    "primary_objective": "clear_task_description",
+    "output_format": "structured_format_requirements",
+    "quality_criteria": "validation_requirements",
+    "constraints": "limitations_and_boundaries"
+  },
+  "content_payload": "actual_content_to_process"
+}
 ```
-Source Document A → Extract Key Points → Compare → Generate Report
-Source Document B → Extract Key Points → ↗ Analysis ↘ → Quality Check
-Reference Data → Validate Information → ↗ ↙ → Human Review (Optional)
+
+##### Standard LLM Output Structure
+```json
+{
+  "response_metadata": {
+    "task_completed": true|false,
+    "confidence_level": 0.0-1.0,
+    "processing_time": "timestamp",
+    "session_id": "matching_input_session"
+  },
+  "memory_updates": {
+    "short_term_additions": {
+      "key_findings": [],
+      "identified_patterns": [],
+      "quality_issues": []
+    },
+    "long_term_learning": {
+      "pattern_updates": [],
+      "preference_refinements": [],
+      "error_corrections": []
+    }
+  },
+  "primary_output": {
+    "structured_result": "main_task_output",
+    "supporting_evidence": [],
+    "uncertainty_indicators": []
+  },
+  "next_step_guidance": {
+    "recommended_actions": [],
+    "required_validations": [],
+    "human_review_triggers": []
+  }
+}
 ```
+
+#### Context-Aware Prompt Engineering
+
+##### Document Processing Prompt Template
+```
+# SYSTEM CONTEXT
+Role: {system_context.role}
+Task: {system_context.task_type} 
+Workflow Stage: {system_context.workflow_stage}
+Session: {system_context.session_id}
+
+# MEMORY INTEGRATION
+## Short-term Context:
+- Current Document Type: {memory_context.short_term.current_document.type}
+- Previous Findings: {memory_context.short_term.previous_extractions}
+- Immediate History: {memory_context.short_term.immediate_history}
+
+## Long-term Patterns:
+- Established Quality Standards: {memory_context.long_term.quality_standards}
+- Known Error Patterns: {memory_context.long_term.error_patterns}
+- User Preferences: {memory_context.long_term.user_preferences}
+
+# TASK SPECIFICATION
+Objective: {task_specification.primary_objective}
+Required Output Format: {task_specification.output_format}
+Quality Criteria: {task_specification.quality_criteria}
+Constraints: {task_specification.constraints}
+
+# CONTENT TO PROCESS
+{content_payload}
+
+# RESPONSE REQUIREMENTS
+1. Maintain consistency with established patterns from long-term memory
+2. Update short-term context with new findings
+3. Identify any deviations from quality standards
+4. Provide confidence assessment for all conclusions
+5. Flag items requiring human review based on established criteria
+6. Structure output according to the specified JSON format
+
+# OUTPUT STRUCTURE ENFORCEMENT
+Respond ONLY in the specified JSON format. Ensure all metadata fields are populated.
+```
+
+#### Memory Management Strategies
+
+##### Short-term Memory (Session-based)
+- **Current Document State**: Track processing progress and intermediate results
+- **Immediate History**: Maintain last 3-5 interactions for context continuity
+- **Active Findings**: Accumulate discoveries within current workflow session
+- **Quality Flags**: Track validation issues and resolution status
+
+##### Long-term Memory (Persistent)
+- **Document Patterns**: Learn common structures and layouts across document types
+- **Quality Baselines**: Establish and refine accuracy standards over time
+- **User Behavior**: Adapt to user preferences and feedback patterns
+- **Error Intelligence**: Build knowledge base of common issues and solutions
+
+#### Information Comparison Workflows with Context
+```
+Source Document A → Context-Aware Extraction → Memory-Enhanced Comparison
+                  ↓                            ↗                      ↘
+              Memory Update              Structured Analysis → Quality Validation
+                  ↓                            ↗                      ↘
+Source Document B → Context-Aware Extraction →                Generate Report
+                  ↓                                                    ↓
+              Memory Update ← Pattern Learning ← Human Review (Optional)
+```
+
+#### Context Continuity Patterns
+
+##### Multi-Document Processing
+```json
+{
+  "workflow_memory": {
+    "document_series": [
+      {
+        "doc_id": "unique_identifier",
+        "processing_timestamp": "ISO_datetime",
+        "key_findings": [],
+        "cross_references": []
+      }
+    ],
+    "comparison_results": [],
+    "accumulated_insights": []
+  }
+}
+```
+
+##### Iterative Refinement Protocol
+1. **Initial Processing**: Establish baseline context and quality standards
+2. **Pattern Recognition**: Identify recurring themes and structures
+3. **Quality Calibration**: Adjust validation criteria based on feedback
+4. **Context Optimization**: Refine prompt templates for improved accuracy
+5. **Memory Consolidation**: Merge short-term findings into long-term knowledge
 
 ### 8. Quality Assurance Framework
 
@@ -126,6 +279,111 @@ Reference Data → Validate Information → ↗ ↙ → Human Review (Optional)
 
 ### 9. Node Configuration Standards
 
+#### LLM Node Context Engineering Configuration
+
+##### Context Management Node Setup
+```json
+{
+  "contextManager": {
+    "memoryStorage": {
+      "shortTerm": {
+        "provider": "workflow_variables|external_db",
+        "retention": "session_based",
+        "maxSize": "10MB",
+        "structure": "structured_json"
+      },
+      "longTerm": {
+        "provider": "database|file_system",
+        "retention": "persistent",
+        "indexing": "searchable",
+        "backup": "automated"
+      }
+    },
+    "sessionManagement": {
+      "idGeneration": "uuid_v4",
+      "timeout": "30_minutes",
+      "cleanup": "automatic",
+      "continuity": "cross_workflow"
+    }
+  }
+}
+```
+
+##### LLM API Node Configuration Template
+```json
+{
+  "llmConfiguration": {
+    "model": "text_model_identifier",
+    "parameters": {
+      "temperature": 0.1,
+      "maxTokens": "dynamic_based_on_content",
+      "systemPrompt": "{{$json.system_context.role_prompt}}",
+      "structuredOutput": true
+    },
+    "contextInjection": {
+      "memoryRetrieval": "{{$('ContextManager').all()[0].json}}",
+      "sessionContinuity": "{{$json.session_id}}",
+      "promptTemplate": "predefined_template_id"
+    },
+    "outputProcessing": {
+      "validation": "json_schema_validation",
+      "memoryExtraction": "automated",
+      "errorHandling": "structured_fallback"
+    }
+  }
+}
+```
+
+##### Context-Aware Code Node Pattern
+```javascript
+// Context Preparation Node
+const contextData = {
+  system_context: {
+    role: items[0].json.workflow_role || 'document_analyst',
+    task_type: items[0].json.current_task || 'extraction',
+    workflow_stage: items[0].json.stage || 'initial',
+    session_id: items[0].json.session_id || $('Generate_Session_ID').all()[0].json.uuid
+  },
+  memory_context: {
+    short_term: $('Retrieve_Short_Term_Memory').all()[0]?.json || {},
+    long_term: $('Retrieve_Long_Term_Memory').all()[0]?.json || {}
+  },
+  task_specification: items[0].json.task_spec,
+  content_payload: items[0].json.content
+};
+
+return [{ json: contextData }];
+```
+
+##### Memory Update Processing Node
+```javascript
+// Memory Processing and Update Node
+const response = items[0].json;
+const sessionId = response.response_metadata.session_id;
+
+// Extract memory updates
+const shortTermUpdates = response.memory_updates.short_term_additions;
+const longTermUpdates = response.memory_updates.long_term_learning;
+
+// Prepare memory storage updates
+const memoryOperations = [
+  {
+    operation: 'update_short_term',
+    session_id: sessionId,
+    data: shortTermUpdates,
+    timestamp: new Date().toISOString()
+  },
+  {
+    operation: 'merge_long_term',
+    pattern_updates: longTermUpdates.pattern_updates,
+    preferences: longTermUpdates.preference_refinements,
+    error_patterns: longTermUpdates.error_corrections
+  }
+];
+
+return memoryOperations.map(op => ({ json: op }));
+```
+
 #### Error Handling Patterns
 ```json
 {
@@ -133,16 +391,22 @@ Reference Data → Validate Information → ↗ ↙ → Human Review (Optional)
     "retryAttempts": 3,
     "fallbackBehavior": "human_review",
     "logLevel": "detailed",
-    "notificationChannels": ["email", "webhook"]
+    "notificationChannels": ["email", "webhook"],
+    "contextPreservation": {
+      "saveState": true,
+      "memoryBackup": "automatic",
+      "sessionContinuity": "maintained"
+    }
   }
 }
 ```
 
-#### Performance Optimization
-- **Parallel Processing**: Run independent tasks simultaneously
-- **Caching Strategy**: Store frequently accessed reference data
-- **Batch Operations**: Group similar operations for efficiency
-- **Resource Management**: Monitor and limit API usage
+#### Performance Optimization with Context Awareness
+- **Parallel Processing**: Run independent tasks simultaneously while maintaining context consistency
+- **Intelligent Caching**: Cache context patterns and frequent document structures
+- **Batch Operations**: Group similar operations while preserving individual context
+- **Context-Aware Resource Management**: Optimize API usage based on context complexity and memory requirements
+- **Memory Optimization**: Implement intelligent memory pruning and consolidation strategies
 
 ### 10. Development Environment Setup
 
@@ -226,9 +490,22 @@ Reference Data → Validate Information → ↗ ↙ → Human Review (Optional)
 - [ ] Vision pipeline converts images to meaningful text descriptions
 - [ ] Main LLM integration handles API errors gracefully
 - [ ] Context integration between vision and text works seamlessly
+- [ ] **Context Engineering Validation**:
+  - [ ] All LLM nodes use structured input/output format
+  - [ ] Session management maintains continuity across workflow steps
+  - [ ] Short-term memory correctly tracks current processing state
+  - [ ] Long-term memory accumulates and applies learned patterns
+  - [ ] Prompt templates include proper context injection points
+  - [ ] Memory updates are extracted and stored from LLM responses
+  - [ ] Context consistency maintained across parallel processing paths
 - [ ] Human review points are clearly marked and functional
 - [ ] Output formatting meets specification requirements
 - [ ] Error messages are informative and actionable
+- [ ] **Memory Management Verification**:
+  - [ ] Session IDs are properly generated and tracked
+  - [ ] Memory storage and retrieval mechanisms function correctly
+  - [ ] Context data is properly cleaned and optimized
+  - [ ] Memory backup and recovery procedures are tested
 
 ## Collaboration Guidelines
 
