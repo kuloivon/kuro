@@ -526,10 +526,10 @@ Source Document B → Context-Aware Extraction →                Generate Repor
 
 ##### Dual-LLM Node Configuration Templates
 
-###### Task Router Node
+###### Task Router Node (Modern n8n Syntax)
 ```javascript
-// Intelligent Task Classification Node
-const taskData = items[0].json;
+// Intelligent Task Classification Node - Updated for n8n 1.x+
+const taskData = $input.all()[0].json;
 
 function classifyTaskComplexity(task) {
   const indicators = {
@@ -561,84 +561,159 @@ const classification = classifyTaskComplexity(taskData);
 return [{ json: { ...taskData, classification } }];
 ```
 
-###### Premium LLM Node Configuration
+###### Premium LLM Node Configuration (HTTP Request v4.2)
 ```json
 {
-  "premiumLLMConfiguration": {
-    "model": "{{$json.classification.routing.llmModel}}",
-    "parameters": {
-      "temperature": 0.1,
-      "maxTokens": "{{$json.content.length > 2000 ? 'large' : 'medium'}}",
-      "systemPrompt": "{{$json.system_context.premium_role_prompt}}",
-      "structuredOutput": true
+  "parameters": {
+    "url": "https://api.openai.com/v1/chat/completions",
+    "method": "POST",
+    "sendHeaders": true,
+    "headerParameters": {
+      "parameters": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{$secrets.PREMIUM_LLM_API_KEY}}"
+        },
+        {
+          "name": "Content-Type", 
+          "value": "application/json"
+        }
+      ]
     },
-    "costOptimization": {
-      "preprocessedInput": "{{$('ContentDistiller').all()[0].json.essentialContent}}",
-      "batchingEnabled": true,
-      "cachingStrategy": "aggressive",
-      "retryLogic": "minimal_retries"
+    "sendBody": true,
+    "bodyParameters": {
+      "parameters": [
+        {
+          "name": "model",
+          "value": "={{$json.classification.routing.llmModel}}"
+        },
+        {
+          "name": "temperature",
+          "value": 0.1
+        },
+        {
+          "name": "max_tokens",
+          "value": "={{$json.content.length > 2000 ? 4000 : 2000}}"
+        },
+        {
+          "name": "messages",
+          "value": [
+            {
+              "role": "system",
+              "content": "={{$json.system_context.premium_role_prompt}}"
+            },
+            {
+              "role": "user", 
+              "content": "={{$('ContentDistiller').all()[0].json.essentialContent}}"
+            }
+          ]
+        }
+      ]
     },
-    "contextInjection": {
-      "memoryRetrieval": "{{$('ContextManager').all()[0].json.longTerm}}",
-      "preprocessedData": "{{$('StandardLLM_Preprocessor').all()[0].json}}",
-      "sessionContinuity": "{{$json.session_id}}"
+    "options": {
+      "timeout": 30000,
+      "retry": {
+        "enabled": true,
+        "maxAttempts": 2
+      }
     }
-  }
+  },
+  "name": "Premium LLM API Call",
+  "type": "n8n-nodes-base.httpRequest",
+  "typeVersion": 4.2
 }
 ```
 
-###### Standard LLM Node Configuration
+###### Standard LLM Node Configuration (HTTP Request v4.2)
 ```json
 {
-  "standardLLMConfiguration": {
-    "model": "{{$json.classification.routing.llmModel}}",
-    "parameters": {
-      "temperature": 0.2,
-      "maxTokens": "standard",
-      "systemPrompt": "{{$json.system_context.standard_role_prompt}}",
-      "structuredOutput": true
+  "parameters": {
+    "url": "https://api.together.xyz/v1/chat/completions",
+    "method": "POST", 
+    "sendHeaders": true,
+    "headerParameters": {
+      "parameters": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{$secrets.STANDARD_LLM_API_KEY}}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
     },
-    "volumeOptimization": {
-      "parallelProcessing": true,
-      "batchSize": "large",
-      "rapidIteration": true,
-      "standardCaching": true
+    "sendBody": true,
+    "bodyParameters": {
+      "parameters": [
+        {
+          "name": "model", 
+          "value": "={{$json.classification.routing.llmModel}}"
+        },
+        {
+          "name": "temperature",
+          "value": 0.2
+        },
+        {
+          "name": "max_tokens",
+          "value": 1000
+        },
+        {
+          "name": "messages",
+          "value": [
+            {
+              "role": "system",
+              "content": "={{$json.system_context.standard_role_prompt}}"
+            },
+            {
+              "role": "user",
+              "content": "={{$json.content_payload}}"
+            }
+          ]
+        }
+      ]
     },
-    "taskFocus": {
-      "extractionTasks": "high_volume",
-      "formattingTasks": "automated",
-      "basicValidation": "enabled",
-      "preprocessing": "comprehensive"
+    "options": {
+      "timeout": 15000,
+      "retry": {
+        "enabled": true,
+        "maxAttempts": 3
+      }
     }
-  }
+  },
+  "name": "Standard LLM API Call",
+  "type": "n8n-nodes-base.httpRequest", 
+  "typeVersion": 4.2
 }
 ```
 
-##### Context-Aware Code Node Pattern
+##### Context-Aware Code Node Pattern (Modern n8n Syntax)
 ```javascript
-// Context Preparation Node
+// Context Preparation Node - Updated for n8n 1.x+
+const inputData = $input.all()[0].json;
+
 const contextData = {
   system_context: {
-    role: items[0].json.workflow_role || 'document_analyst',
-    task_type: items[0].json.current_task || 'extraction',
-    workflow_stage: items[0].json.stage || 'initial',
-    session_id: items[0].json.session_id || $('Generate_Session_ID').all()[0].json.uuid
+    role: inputData.workflow_role || 'document_analyst',
+    task_type: inputData.current_task || 'extraction',
+    workflow_stage: inputData.stage || 'initial',
+    session_id: inputData.session_id || $('Generate_Session_ID').all()[0].json.uuid
   },
   memory_context: {
     short_term: $('Retrieve_Short_Term_Memory').all()[0]?.json || {},
     long_term: $('Retrieve_Long_Term_Memory').all()[0]?.json || {}
   },
-  task_specification: items[0].json.task_spec,
-  content_payload: items[0].json.content
+  task_specification: inputData.task_spec,
+  content_payload: inputData.content
 };
 
 return [{ json: contextData }];
 ```
 
-##### Memory Update Processing Node
+##### Memory Update Processing Node (Modern Syntax)
 ```javascript
-// Memory Processing and Update Node
-const response = items[0].json;
+// Memory Processing and Update Node - Updated for n8n 1.x+
+const response = $input.all()[0].json;
 const sessionId = response.response_metadata.session_id;
 
 // Extract memory updates
@@ -664,18 +739,42 @@ const memoryOperations = [
 return memoryOperations.map(op => ({ json: op }));
 ```
 
-#### Error Handling Patterns
+#### Modern Error Handling Patterns (n8n 1.x+)
 ```json
 {
-  "errorHandling": {
-    "retryAttempts": 3,
-    "fallbackBehavior": "human_review",
-    "logLevel": "detailed",
-    "notificationChannels": ["email", "webhook"],
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "nodeErrorHandling": {
+    "continueOnFail": false,
+    "retryOnFail": true,
+    "maxTries": 3,
+    "waitBetween": 1000,
+    "onError": "stopWorkflow"
+  },
+  "workflowErrorHandling": {
+    "errorWorkflow": {
+      "active": true,
+      "workflowId": "error-handling-workflow-id"
+    },
     "contextPreservation": {
-      "saveState": true,
-      "memoryBackup": "automatic",
-      "sessionContinuity": "maintained"
+      "pinData": true,
+      "executionData": true,
+      "memoryBackup": true
+    },
+    "notifications": {
+      "email": {
+        "enabled": true,
+        "recipients": ["admin@example.com"]
+      },
+      "webhook": {
+        "enabled": true,
+        "url": "https://hooks.slack.com/services/xxx"
+      }
     }
   }
 }
@@ -759,26 +858,40 @@ Quality Check (Automated Rules)
 
 #### n8n Workflow JSON Format Standards
 
-##### Basic Workflow Structure
+##### Modern n8n Workflow Structure (2024+)
 ```json
 {
-  "name": "Workflow Name",
+  "name": "Document Processing Workflow",
   "nodes": [
     {
-      "parameters": {},
-      "id": "unique-node-id",
-      "name": "Node Display Name",
-      "type": "NodeType",
+      "parameters": {
+        "operation": "extract",
+        "filePath": "=/tmp/input.pdf",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Extract PDF Content",
+      "type": "n8n-nodes-base.extractFromFile",
       "typeVersion": 1,
-      "position": [x, y]
+      "position": [340, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Task Classification Logic\nconst taskData = $input.all()[0].json;\nreturn [{json: {tier: 'standard', content: taskData}}];"
+      },
+      "id": "b2c3d4e5-f6g7-8901-bcde-f23456789012",
+      "name": "Task Router",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [560, 240]
     }
   ],
   "connections": {
-    "Node Name": {
+    "Extract PDF Content": {
       "main": [
         [
           {
-            "node": "Target Node Name",
+            "node": "Task Router",
             "type": "main",
             "index": 0
           }
@@ -787,20 +900,37 @@ Quality Check (Automated Rules)
     }
   },
   "active": false,
-  "settings": {},
-  "versionId": "workflow-version-id",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "current",
   "meta": {
-    "templateCredsSetupCompleted": true
-  }
+    "templateCredsSetupCompleted": true,
+    "instanceId": "your-instance-id"
+  },
+  "id": "workflow-unique-id",
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "createdAt": "2024-01-01T00:00:00.000Z"
 }
 ```
 
 ##### Node Configuration Requirements
-- **Unique IDs**: Each node must have a unique UUID-style identifier
-- **Position Coordinates**: Visual positioning for workflow canvas [x, y]
-- **Type Versioning**: Specify node type version for compatibility
-- **Parameter Validation**: All required parameters must be present
-- **Connection Mapping**: Precise node-to-node connection definitions
+- **Unique UUIDs**: Each node must have a UUID v4 format identifier (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+- **Full Type Names**: Use complete node type names (e.g., "n8n-nodes-base.code", "n8n-nodes-base.httpRequest")
+- **Type Versioning**: Specify correct typeVersion for node compatibility (Code nodes use typeVersion 2, most others use 1)
+- **Position Arrays**: Canvas positioning as [x, y] coordinates (e.g., [340, 240])
+- **Parameter Structure**: Complete parameter objects specific to each node type
+- **Connection Precision**: Exact node name matching in connections object
+
+##### Updated Node Type Standards
+- **Code Node**: `"type": "n8n-nodes-base.code", "typeVersion": 2`
+- **HTTP Request**: `"type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2`
+- **Set/Edit Fields**: `"type": "n8n-nodes-base.set", "typeVersion": 3.4`
+- **Manual Trigger**: `"type": "n8n-nodes-base.manualTrigger", "typeVersion": 1`
+- **If Node**: `"type": "n8n-nodes-base.if", "typeVersion": 2`
+- **Extract From File**: `"type": "n8n-nodes-base.extractFromFile", "typeVersion": 1`
 
 ##### Import/Export Best Practices
 - **Credential Handling**: Remove sensitive credentials before export
