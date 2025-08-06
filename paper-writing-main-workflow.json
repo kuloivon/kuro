@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "### document_upload_trigger()\n- 接收文档上传请求\n- 支持PDF、Markdown、文本文件\n- 使用webhook触发器",
+        "content": "### document_upload_trigger()\\\n- 接收文档上传请求\\\n- 支持PDF、Markdown、文本文件\\\n- 使用webhook触发器",
         "height": 400,
         "width": 440,
         "color": 5
@@ -74,7 +74,7 @@
     },
     {
       "parameters": {
-        "content": "### Writing Configs\n- `max_file_size` (*最大文件大小*): 10MB\n- `supported_formats` (*支持格式*): ['pdf', 'markdown', 'txt']\n\n### variables:\n- `current_date`\n- `document_id`\n\n",
+        "content": "### Writing Configs\\\n- `max_file_size` (*最大文件大小*): 10MB\\\n- `supported_formats` (*支持格式*): ['pdf', 'markdown', 'txt']\\\n\\\n### variables:\\\n- `current_date`\\\n- `document_id`\\\n\\\n",
         "height": 300,
         "width": 340,
         "color": 4
@@ -111,7 +111,7 @@
     {
       "parameters": {
         "schemaType": "manual",
-        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"fileInfo\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"filename\": {\n          \"type\": \"string\",\n          \"description\": \"文件名\"\n        },\n        \"mimetype\": {\n          \"type\": \"string\",\n          \"description\": \"MIME类型\"\n        },\n        \"size\": {\n          \"type\": \"number\",\n          \"description\": \"文件大小\"\n        }\n      },\n      \"required\": [\"filename\", \"mimetype\", \"size\"]\n    },\n    \"sessionId\": {\n      \"type\": \"string\",\n      \"description\": \"会话ID\"\n    }\n  },\n  \"required\": [\"fileInfo\", \"sessionId\"],\n  \"additionalProperties\": false\n}"
+        "inputSchema": "{\\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\\n  \"type\": \"object\",\\n  \"properties\": {\\n    \"fileInfo\": {\\n      \"type\": \"object\",\\n      \"properties\": {\\n        \"filename\": {\\n          \"type\": \"string\",\\n          \"description\": \"文件名\"\\n        },\\n        \"mimetype\": {\\n          \"type\": \"string\",\\n          \"description\": \"MIME类型\"\\n        },\\n        \"size\": {\\n          \"type\": \"number\",\\n          \"description\": \"文件大小\"\\n        }\\n      },\\n      \"required\": [\"filename\", \"mimetype\", \"size\"]\\n    },\\n    \"sessionId\": {\\n      \"type\": \"string\",\\n      \"description\": \"会话ID\"\\n    }\\n  },\\n  \"required\": [\"fileInfo\", \"sessionId\"],\\n  \"additionalProperties\": false\\n}"
       },
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.2,
@@ -125,19 +125,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=你是一个专业的文档处理系统。请分析上传的文件信息并确定处理方式。
-
-分析要求：
-1. **文件类型识别**：确定文件的具体类型和格式
-2. **文件大小验证**：检查文件大小是否在允许范围内
-3. **内容预览**：提取文件的基本信息
-4. **处理建议**：推荐合适的处理流程
-
-请分析以下文件信息：
-
-{{ $('文件上传触发器').item.json }}
-
-请提供详细的分析结果。",
+        "text": "=你是一个专业的文档处理系统。请分析上传的文件信息并确定处理方式。\n\n分析要求：\n1. **文件类型识别**：确定文件的具体类型和格式\n2. **文件大小验证**：检查文件大小是否在允许范围内\n3. **内容预览**：提取文件的基本信息\n4. **处理建议**：推荐合适的处理流程\n\n请分析以下文件信息：\n\n{{ $('文件上传触发器').item.json }}\n\n请提供详细的分析结果。",
         "hasOutputParser": true,
         "batching": {}
       },
@@ -170,7 +158,7 @@
     },
     {
       "parameters": {
-        "content": "## extract_pdf_content()\n\n提取PDF文档内容。\n- 解析PDF文本内容\n- 提取页面信息\n- 识别文档结构\n- 保留原始格式",
+        "content": "## extract_pdf_content()\\\n\\\n提取PDF文档内容。\\\n- 解析PDF文本内容\\\n- 提取页面信息\\\n- 识别文档结构\\\n- 保留原始格式",
         "height": 400,
         "width": 440,
         "color": 5
@@ -187,7 +175,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// PDF内容提取\nconst pdfParse = require('pdf-parse');\nconst fs = require('fs');\n\nfor (const item of $input.all()) {\n  try {\n    const fileBuffer = Buffer.from(item.binary.data, 'base64');\n    const pdfData = await pdfParse(fileBuffer);\n    \n    // 提取文本内容\n    const extractedText = pdfData.text;\n    const pageCount = pdfData.numpages;\n    \n    // 基础信息提取\n    const titleMatch = extractedText.match(/^(.{1,100})/m);\n    const title = titleMatch ? titleMatch[1].trim() : '未识别标题';\n    \n    // 分段处理\n    const paragraphs = extractedText\n      .split('\\n\\n')\n      .filter(p => p.trim().length > 50)\n      .map(p => p.replace(/\\s+/g, ' ').trim());\n    \n    item.json = {\n      fileType: 'pdf',\n      originalFileName: item.json.filename || 'unknown.pdf',\n      title: title,\n      fullText: extractedText,\n      paragraphs: paragraphs,\n      pageCount: pageCount,\n      wordCount: extractedText.split(/\\s+/).length,\n      extractedAt: new Date().toISOString(),\n      processingStage: 'text_extracted'\n    };\n    \n    // 保留原始文件数据\n    item.binary.originalFile = item.binary.data;\n    \n  } catch (error) {\n    item.json = {\n      error: 'PDF解析失败',\n      errorMessage: error.message,\n      processingStage: 'extraction_failed'\n    };\n  }\n}\n\nreturn $input.all();"
+        "jsCode": "// PDF内容提取\\nconst pdfParse = require('pdf-parse');\\nconst fs = require('fs');\\n\\nfor (const item of $input.all()) {\\n  try {\\n    const fileBuffer = Buffer.from(item.binary.data, 'base64');\\n    const pdfData = await pdfParse(fileBuffer);\\n    \\n    // 提取文本内容\\n    const extractedText = pdfData.text;\\n    const pageCount = pdfData.numpages;\\n    \\n    // 基础信息提取\\n    const titleMatch = extractedText.match(/^(.{1,100})/m);\\n    const title = titleMatch ? titleMatch[1].trim() : '未识别标题';\\n    \\n    // 分段处理\\n    const paragraphs = extractedText\\n      .split('\\\n\\\n')\\n      .filter(p => p.trim().length > 50)\\n      .map(p => p.replace(/\\s+/g, ' ').trim());\\n    \\n    item.json = {\\n      fileType: 'pdf',\\n      originalFileName: item.json.filename || 'unknown.pdf',\\n      title: title,\\n      fullText: extractedText,\\n      paragraphs: paragraphs,\\n      pageCount: pageCount,\\n      wordCount: extractedText.split(/\\s+/).length,\\n      extractedAt: new Date().toISOString(),\\n      processingStage: 'text_extracted'\\n    };\\n    \\n    // 保留原始文件数据\\n    item.binary.originalFile = item.binary.data;\\n    \\n  } catch (error) {\\n    item.json = {\\n      error: 'PDF解析失败',\\n      errorMessage: error.message,\\n      processingStage: 'extraction_failed'\\n    };\\n  }\\n}\\n\\nreturn $input.all();"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -201,7 +189,7 @@
     },
     {
       "parameters": {
-        "content": "## extract_markdown_content()\n\n提取Markdown文档内容。\n- 解析Markdown结构\n- 提取标题和段落\n- 识别图片和链接\n- 保持文档格式",
+        "content": "## extract_markdown_content()\\\n\\\n提取Markdown文档内容。\\\n- 解析Markdown结构\\\n- 提取标题和段落\\\n- 识别图片和链接\\\n- 保持文档格式",
         "height": 400,
         "width": 440,
         "color": 5
@@ -218,7 +206,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Markdown内容提取\nconst marked = require('marked');\n\nfor (const item of $input.all()) {\n  try {\n    const fileContent = Buffer.from(item.binary.data, 'base64').toString('utf-8');\n    \n    // 解析markdown结构\n    const tokens = marked.lexer(fileContent);\n    \n    // 提取标题\n    const headings = tokens.filter(token => token.type === 'heading');\n    const title = headings.length > 0 ? headings[0].text : '未识别标题';\n    \n    // 提取段落\n    const paragraphs = tokens\n      .filter(token => token.type === 'paragraph')\n      .map(token => token.text)\n      .filter(text => text.length > 50);\n    \n    // 提取图片引用\n    const images = [];\n    const imageRegex = /!\\[([^\\]]*)\\]\\(([^\\)]+)\\)/g;\n    let match;\n    while ((match = imageRegex.exec(fileContent)) !== null) {\n      images.push({\n        alt: match[1],\n        src: match[2],\n        description: match[1] || '图片描述待补充'\n      });\n    }\n    \n    // 提取链接引用\n    const links = [];\n    const linkRegex = /\\[([^\\]]+)\\]\\(([^\\)]+)\\)/g;\n    while ((match = linkRegex.exec(fileContent)) !== null) {\n      if (!match[2].match(/\\.(jpg|jpeg|png|gif|svg)$/i)) {\n        links.push({\n          text: match[1],\n          url: match[2]\n        });\n      }\n    }\n    \n    item.json = {\n      fileType: 'markdown',\n      originalFileName: item.json.filename || 'unknown.md',\n      title: title,\n      fullText: fileContent,\n      paragraphs: paragraphs,\n      headings: headings.map(h => ({ level: h.depth, text: h.text })),\n      images: images,\n      links: links,\n      wordCount: fileContent.split(/\\s+/).length,\n      extractedAt: new Date().toISOString(),\n      processingStage: 'text_extracted'\n    };\n    \n    item.binary.originalFile = item.binary.data;\n    \n  } catch (error) {\n    item.json = {\n      error: 'Markdown解析失败',\n      errorMessage: error.message,\n      processingStage: 'extraction_failed'\n    };\n  }\n}\n\nreturn $input.all();"
+        "jsCode": "// Markdown内容提取\\nconst marked = require('marked');\\n\\nfor (const item of $input.all()) {\\n  try {\\n    const fileContent = Buffer.from(item.binary.data, 'base64').toString('utf-8');\\n    \\n    // 解析markdown结构\\n    const tokens = marked.lexer(fileContent);\\n    \\n    // 提取标题\\n    const headings = tokens.filter(token => token.type === 'heading');\\n    const title = headings.length > 0 ? headings[0].text : '未识别标题';\\n    \\n    // 提取段落\\n    const paragraphs = tokens\\n      .filter(token => token.type === 'paragraph')\\n      .map(token => token.text)\\n      .filter(text => text.length > 50);\\n    \\n    // 提取图片引用\\n    const images = [];\\n    const imageRegex = /!\\[([^\\]]*)\\]\\(([^\\)]+)\\)/g;\\n    let match;\\n    while ((match = imageRegex.exec(fileContent)) !== null) {\\n      images.push({\\n        alt: match[1],\\n        src: match[2],\\n        description: match[1] || '图片描述待补充'\\n      });\\n    }\\n    \\n    // 提取链接引用\\n    const links = [];\\n    const linkRegex = /\\[([^\\]]+)\\]\\(([^\\)]+)\\)/g;\\n    while ((match = linkRegex.exec(fileContent)) !== null) {\\n      if (!match[2].match(/\\.(jpg|jpeg|png|gif|svg)$/i)) {\\n        links.push({\\n          text: match[1],\\n          url: match[2]\\n        });\\n      }\\n    }\\n    \\n    item.json = {\\n      fileType: 'markdown',\\n      originalFileName: item.json.filename || 'unknown.md',\\n      title: title,\\n      fullText: fileContent,\\n      paragraphs: paragraphs,\\n      headings: headings.map(h => ({ level: h.depth, text: h.text })),\\n      images: images,\\n      links: links,\\n      wordCount: fileContent.split(/\\s+/).length,\\n      extractedAt: new Date().toISOString(),\\n      processingStage: 'text_extracted'\\n    };\\n    \\n    item.binary.originalFile = item.binary.data;\\n    \\n  } catch (error) {\\n    item.json = {\\n      error: 'Markdown解析失败',\\n      errorMessage: error.message,\\n      processingStage: 'extraction_failed'\\n    };\\n  }\\n}\\n\\nreturn $input.all();"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -232,7 +220,7 @@
     },
     {
       "parameters": {
-        "content": "## extract_text_content()\n\n提取纯文本文档内容。\n- 解析文本内容\n- 提取段落结构\n- 识别文档主题\n- 保持原始格式",
+        "content": "## extract_text_content()\\n\\n提取纯文本文档内容。\\n- 解析文本内容\\n- 提取段落结构\\n- 识别文档主题\\n- 保持原始格式",
         "height": 400,
         "width": 440,
         "color": 5
@@ -249,7 +237,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// 纯文本内容提取\nfor (const item of $input.all()) {\n  try {\n    const fileContent = Buffer.from(item.binary.data, 'base64').toString('utf-8');\n    \n    // 基础信息提取\n    const lines = fileContent.split('\\n');\n    const title = lines[0] ? lines[0].trim() : '未识别标题';\n    \n    // 分段处理\n    const paragraphs = fileContent\n      .split('\\n\\n')\n      .filter(p => p.trim().length > 30)\n      .map(p => p.replace(/\\s+/g, ' ').trim());\n    \n    // 提取关键信息\n    const wordCount = fileContent.split(/\\s+/).length;\n    const lineCount = lines.length;\n    const charCount = fileContent.length;\n    \n    item.json = {\n      fileType: 'text',\n      originalFileName: item.json.filename || 'unknown.txt',\n      title: title,\n      fullText: fileContent,\n      paragraphs: paragraphs,\n      lines: lines,\n      wordCount: wordCount,\n      lineCount: lineCount,\n      charCount: charCount,\n      extractedAt: new Date().toISOString(),\n      processingStage: 'text_extracted'\n    };\n    \n    item.binary.originalFile = item.binary.data;\n    \n  } catch (error) {\n    item.json = {\n      error: '文本解析失败',\n      errorMessage: error.message,\n      processingStage: 'extraction_failed'\n    };\n  }\n}\n\nreturn $input.all();"
+        "jsCode": "// 纯文本内容提取\\nfor (const item of $input.all()) {\\n  try {\\n    const fileContent = Buffer.from(item.binary.data, 'base64').toString('utf-8');\\n    \\n    // 基础信息提取\\n    const lines = fileContent.split('\\\n');\\n    const title = lines[0] ? lines[0].trim() : '未识别标题';\\n    \\n    // 分段处理\\n    const paragraphs = fileContent\\n      .split('\\\n\\\n')\\n      .filter(p => p.trim().length > 30)\\n      .map(p => p.replace(/\\s+/g, ' ').trim());\\n    \\n    // 提取关键信息\\n    const wordCount = fileContent.split(/\\s+/).length;\\n    const lineCount = lines.length;\\n    const charCount = fileContent.length;\\n    \\n    item.json = {\\n      fileType: 'text',\\n      originalFileName: item.json.filename || 'unknown.txt',\\n      title: title,\\n      fullText: fileContent,\\n      paragraphs: paragraphs,\\n      lines: lines,\\n      wordCount: wordCount,\\n      lineCount: lineCount,\\n      charCount: charCount,\\n      extractedAt: new Date().toISOString(),\\n      processingStage: 'text_extracted'\\n    };\\n    \\n    item.binary.originalFile = item.binary.data;\\n    \\n  } catch (error) {\\n    item.json = {\\n      error: '文本解析失败',\\n      errorMessage: error.message,\\n      processingStage: 'extraction_failed'\\n    };\\n  }\\n}\\n\\nreturn $input.all();"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -288,7 +276,7 @@
     },
     {
       "parameters": {
-        "content": "## analyze_document_content()\n\n使用Gemini模型分析文档内容。\n- 识别文档主题和关键概念\n- 提取重要信息点\n- 分析文档结构\n- 生成内容摘要",
+        "content": "## analyze_document_content()\\n\\n使用Gemini模型分析文档内容。\\n- 识别文档主题和关键概念\\n- 提取重要信息点\\n- 分析文档结构\\n- 生成内容摘要",
         "height": 500,
         "width": 440,
         "color": 5
@@ -305,7 +293,7 @@
     {
       "parameters": {
         "schemaType": "manual",
-        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"documentAnalysis\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"theme\": {\n          \"type\": \"string\",\n          \"description\": \"文档主题\"\n        },\n        \"summary\": {\n          \"type\": \"string\",\n          \"description\": \"内容摘要\"\n        },\n        \"keyPoints\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          },\n          \"description\": \"关键要点\"\n        },\n        \"concepts\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          },\n          \"description\": \"关键概念\"\n        },\n        \"academicLevel\": {\n          \"type\": \"string\",\n          \"enum\": [\"undergraduate\", \"graduate\", \"phd\", \"research\"],\n          \"description\": \"学术水平\"\n        },\n        \"targetWordCount\": {\n          \"type\": \"number\",\n          \"description\": \"目标字数\"\n        }\n      },\n      \"required\": [\"theme\", \"summary\", \"keyPoints\", \"concepts\", \"academicLevel\", \"targetWordCount\"]\n    },\n    \"structureAnalysis\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"sections\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"title\": {\n                \"type\": \"string\"\n              },\n              \"content\": {\n                \"type\": \"string\"\n              },\n              \"wordCount\": {\n                \"type\": \"number\"\n              }\n            }\n          }\n        }\n      }\n    }\n  },\n  \"required\": [\"documentAnalysis\", \"structureAnalysis\"],\n  \"additionalProperties\": false\n}"
+        "inputSchema": "{\\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\\n  \"type\": \"object\",\\n  \"properties\": {\\n    \"documentAnalysis\": {\\n      \"type\": \"object\",\\n      \"properties\": {\\n        \"theme\": {\\n          \"type\": \"string\",\\n          \"description\": \"文档主题\"\\n        },\\n        \"summary\": {\\n          \"type\": \"string\",\\n          \"description\": \"内容摘要\"\\n        },\\n        \"keyPoints\": {\\n          \"type\": \"array\",\\n          \"items\": {\\n            \"type\": \"string\"\\n          },\\n          \"description\": \"关键要点\"\\n        },\\n        \"concepts\": {\\n          \"type\": \"array\",\\n          \"items\": {\\n            \"type\": \"string\"\\n          },\\n          \"description\": \"关键概念\"\\n        },\\n        \"academicLevel\": {\\n          \"type\": \"string\",\\n          \"enum\": [\"undergraduate\", \"graduate\", \"phd\", \"research\"],\\n          \"description\": \"学术水平\"\\n        },\\n        \"targetWordCount\": {\\n          \"type\": \"number\",\\n          \"description\": \"目标字数\"\\n        }\\n      },\\n      \"required\": [\"theme\", \"summary\", \"keyPoints\", \"concepts\", \"academicLevel\", \"targetWordCount\"]\\n    },\\n    \"structureAnalysis\": {\\n      \"type\": \"object\",\\n      \"properties\": {\\n        \"sections\": {\\n          \"type\": \"array\",\\n          \"items\": {\\n            \"type\": \"object\",\\n            \"properties\": {\\n              \"title\": {\\n                \"type\": \"string\"\\n              },\\n              \"content\": {\\n                \"type\": \"string\"\\n              },\\n              \"wordCount\": {\\n                \"type\": \"number\"\\n              }\\n            }\\n          }\\n        }\\n      }\\n    }\\n  },\\n  \"required\": [\"documentAnalysis\", \"structureAnalysis\"],\\n  \"additionalProperties\": false\\n}"
       },
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.2,
@@ -319,27 +307,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=你是一个专业的文档分析专家。请分析提供的文档内容并提取关键信息。
-
-分析要求：
-1. **主题识别**：确定文档的核心主题和研究方向
-2. **内容摘要**：生成简洁的内容摘要
-3. **关键要点**：提取重要的信息点
-4. **概念识别**：识别关键概念和术语
-5. **学术水平评估**：判断适合的学术水平
-6. **字数估算**：根据内容复杂度估算目标字数
-
-请分析以下文档内容：
-
-## 文档信息
-**标题：** {{ $json.title }}
-**文件类型：** {{ $json.fileType }}
-**字数：** {{ $json.wordCount }}
-
-## 文档内容
-{{ $json.fullText.substring(0, 2000) }}{{ $json.fullText.length > 2000 ? '...' : '' }}
-
-请提供详细的分析结果。",
+        "text": "=你是一个专业的文档分析专家。请分析提供的文档内容并提取关键信息。\n\n分析要求：\n1. **主题识别**：确定文档的核心主题和研究方向\n2. **内容摘要**：生成简洁的内容摘要\n3. **关键要点**：提取重要的信息点\n4. **概念识别**：识别关键概念和术语\n5. **学术水平评估**：判断适合的学术水平\n6. **字数估算**：根据内容复杂度估算目标字数\n\n请分析以下文档内容：\n\n## 文档信息\n**标题：** {{ $json.title }}\n**文件类型：** {{ $json.fileType }}\n**字数：** {{ $json.wordCount }}\n\n## 文档内容\n{{ $json.fullText.substring(0, 2000) }}{{ $json.fullText.length > 2000 ? '...' : '' }}\n\n请提供详细的分析结果。",
         "hasOutputParser": true,
         "batching": {}
       },
@@ -356,7 +324,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// 处理文档分析结果\nfor (const item of $input.all()) {\n  try {\n    const analysisResult = item.json;\n    const originalData = $('内容合并').first().json;\n    \n    // 验证分析结果\n    const validationResult = validateAnalysis(analysisResult);\n    \n    if (!validationResult.isValid) {\n      item.json = {\n        error: '文档分析验证失败',\n        errorMessage: validationResult.errorMessage,\n        processingStage: 'validation_failed'\n      };\n      continue;\n    }\n    \n    // 构建完整的文档数据\n    const documentData = {\n      documentId: $('Writing Configs').item.json.document_id,\n      sessionId: $('File Analysis Parser').item.json.sessionId,\n      fileInfo: {\n        originalFileName: originalData.originalFileName,\n        fileType: originalData.fileType,\n        wordCount: originalData.wordCount,\n        extractedAt: originalData.extractedAt\n      },\n      content: {\n        title: originalData.title,\n        fullText: originalData.fullText,\n        paragraphs: originalData.paragraphs || []\n      },\n      analysis: analysisResult.documentAnalysis,\n      structure: analysisResult.structureAnalysis,\n      metadata: {\n        processedAt: new Date().toISOString(),\n        version: '1.0'\n      },\n      processingStage: 'analysis_completed',\n      status: 'ready_for_outline'\n    };\n    \n    item.json = {\n      documentData: documentData,\n      validationResult: validationResult,\n      processingStage: 'document_processed',\n      success: true\n    };\n    \n  } catch (error) {\n    item.json = {\n      error: '文档处理失败',\n      errorMessage: error.message,\n      originalResponse: item.json,\n      processingStage: 'processing_failed'\n    };\n  }\n}\n\nfunction validateAnalysis(analysis) {\n  // 检查必需字段\n  if (!analysis.documentAnalysis || !analysis.documentAnalysis.theme) {\n    return {\n      isValid: false,\n      errorMessage: '缺少文档主题信息'\n    };\n  }\n  \n  if (!analysis.documentAnalysis.summary || analysis.documentAnalysis.summary.length < 50) {\n    return {\n      isValid: false,\n      errorMessage: '内容摘要过短'\n    };\n  }\n  \n  if (!analysis.documentAnalysis.keyPoints || analysis.documentAnalysis.keyPoints.length === 0) {\n    return {\n      isValid: false,\n      errorMessage: '缺少关键要点'\n    };\n  }\n  \n  return {\n    isValid: true,\n    errorMessage: null\n  };\n}\n\nreturn $input.all();"
+        "jsCode": "// 处理文档分析结果\\nfor (const item of $input.all()) {\\n  try {\\n    const analysisResult = item.json;\\n    const originalData = $('内容合并').first().json;\\n    \\n    // 验证分析结果\\n    const validationResult = validateAnalysis(analysisResult);\\n    \\n    if (!validationResult.isValid) {\\n      item.json = {\\n        error: '文档分析验证失败',\\n        errorMessage: validationResult.errorMessage,\\n        processingStage: 'validation_failed'\\n      };\\n      continue;\\n    }\\n    \\n    // 构建完整的文档数据\\n    const documentData = {\\n      documentId: $('Writing Configs').item.json.document_id,\\n      sessionId: $('File Analysis Parser').item.json.sessionId,\\n      fileInfo: {\\n        originalFileName: originalData.originalFileName,\\n        fileType: originalData.fileType,\\n        wordCount: originalData.wordCount,\\n        extractedAt: originalData.extractedAt\\n      },\\n      content: {\\n        title: originalData.title,\\n        fullText: originalData.fullText,\\n        paragraphs: originalData.paragraphs || []\\n      },\\n      analysis: analysisResult.documentAnalysis,\\n      structure: analysisResult.structureAnalysis,\\n      metadata: {\\n        processedAt: new Date().toISOString(),\\n        version: '1.0'\\n      },\\n      processingStage: 'analysis_completed',\\n      status: 'ready_for_outline'\\n    };\\n    \\n    item.json = {\\n      documentData: documentData,\\n      validationResult: validationResult,\\n      processingStage: 'document_processed',\\n      success: true\\n    };\\n    \\n  } catch (error) {\\n    item.json = {\\n      error: '文档处理失败',\\n      errorMessage: error.message,\\n      originalResponse: item.json,\\n      processingStage: 'processing_failed'\\n    };\\n  }\\n}\\n\\nfunction validateAnalysis(analysis) {\\n  // 检查必需字段\\n  if (!analysis.documentAnalysis || !analysis.documentAnalysis.theme) {\\n    return {\\n      isValid: false,\\n      errorMessage: '缺少文档主题信息'\\n    };\\n  }\\n  \\n  if (!analysis.documentAnalysis.summary || analysis.documentAnalysis.summary.length < 50) {\\n    return {\\n      isValid: false,\\n      errorMessage: '内容摘要过短'\\n    };\\n  }\\n  \\n  if (!analysis.documentAnalysis.keyPoints || analysis.documentAnalysis.keyPoints.length === 0) {\\n    return {\\n      isValid: false,\\n      errorMessage: '缺少关键要点'\\n    };\\n  }\\n  \\n  return {\\n    isValid: true,\\n    errorMessage: null\\n  };\\n}\\n\\nreturn $input.all();"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -370,7 +338,7 @@
     },
     {
       "parameters": {
-        "content": "## trigger_outline_generation()\n\n触发大纲生成工作流。\n- 将分析结果发送给大纲生成系统\n- 启动论文大纲生成流程\n- 传递文档分析数据",
+        "content": "## trigger_outline_generation()\\n\\n触发大纲生成工作流。\\n- 将分析结果发送给大纲生成系统\\n- 启动论文大纲生成流程\\n- 传递文档分析数据",
         "height": 400,
         "width": 440,
         "color": 5
@@ -422,7 +390,7 @@
     },
     {
       "parameters": {
-        "content": "## final_output()\n\n生成最终输出结果。\n- 返回文档分析结果\n- 提供处理状态信息\n- 包含后续流程指导",
+        "content": "## final_output()\\n\\n生成最终输出结果。\\n- 返回文档分析结果\\n- 提供处理状态信息\\n- 包含后续流程指导",
         "height": 300,
         "width": 440,
         "color": 5
@@ -439,7 +407,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// 生成最终输出\nfor (const item of $input.all()) {\n  const result = {\n    success: true,\n    message: '文档处理完成，已触发大纲生成',\n    data: {\n      document: item.json.documentData,\n      analysis: item.json.documentData.analysis,\n      nextStep: 'outline_generation'\n    },\n    timestamp: new Date().toISOString(),\n    processingTime: new Date() - new Date($('File Analysis Parser').item.json.timestamp || Date.now())\n  };\n  \n  item.json = result;\n}\n\nreturn $input.all();"
+        "jsCode": "// 生成最终输出\\nfor (const item of $input.all()) {\\n  const result = {\\n    success: true,\\n    message: '文档处理完成，已触发大纲生成',\\n    data: {\\n      document: item.json.documentData,\\n      analysis: item.json.documentData.analysis,\\n      nextStep: 'outline_generation'\\n    },\\n    timestamp: new Date().toISOString(),\\n    processingTime: new Date() - new Date($('File Analysis Parser').item.json.timestamp || Date.now())\\n  };\\n  \\n  item.json = result;\\n}\\n\\nreturn $input.all();"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

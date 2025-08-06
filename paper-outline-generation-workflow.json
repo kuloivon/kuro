@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "### outline_generation_trigger()\n- 接收论文大纲生成请求\n- 分析文档内容和主题\n- 使用webhook触发器",
+        "content": "### outline_generation_trigger()\\n- 接收论文大纲生成请求\\n- 分析文档内容和主题\\n- 使用webhook触发器",
         "height": 400,
         "width": 440,
         "color": 5
@@ -73,7 +73,7 @@
     },
     {
       "parameters": {
-        "content": "### Outline Configs\n- `max_outline_chapters` (*最大章节数*): 6\n- `min_sections_per_chapter` (*每章最少小节数*): 3\n\n### variables:\n- `current_date`\n- `outline_id`\n\n",
+        "content": "### Outline Configs\\n- `max_outline_chapters` (*最大章节数*): 6\\n- `min_sections_per_chapter` (*每章最少小节数*): 3\\n\\n### variables:\\n- `current_date`\\n- `outline_id`\\n\\n",
         "height": 300,
         "width": 340,
         "color": 4
@@ -110,7 +110,7 @@
     {
       "parameters": {
         "schemaType": "manual",
-        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"documentAnalysis\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"theme\": {\n          \"type\": \"string\",\n          \"description\": \"论文主题\"\n        },\n        \"concepts\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          },\n          \"description\": \"关键概念列表\"\n        },\n        \"academicLevel\": {\n          \"type\": \"string\",\n          \"enum\": [\"undergraduate\", \"graduate\", \"phd\", \"research\"],\n          \"description\": \"学术水平\"\n        },\n        \"targetWordCount\": {\n          \"type\": \"number\",\n          \"description\": \"目标字数\"\n        }\n      },\n      \"required\": [\"theme\", \"concepts\", \"academicLevel\", \"targetWordCount\"]\n    },\n    \"sessionId\": {\n      \"type\": \"string\",\n      \"description\": \"会话ID\"\n    }\n  },\n  \"required\": [\"documentAnalysis\", \"sessionId\"],\n  \"additionalProperties\": false\n}"
+        "inputSchema": "{\\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\\n  \"type\": \"object\",\\n  \"properties\": {\\n    \"documentAnalysis\": {\\n      \"type\": \"object\",\\n      \"properties\": {\\n        \"theme\": {\\n          \"type\": \"string\",\\n          \"description\": \"论文主题\"\\n        },\\n        \"concepts\": {\\n          \"type\": \"array\",\\n          \"items\": {\\n            \"type\": \"string\"\\n          },\\n          \"description\": \"关键概念列表\"\\n        },\\n        \"academicLevel\": {\\n          \"type\": \"string\",\\n          \"enum\": [\"undergraduate\", \"graduate\", \"phd\", \"research\"],\\n          \"description\": \"学术水平\"\\n        },\\n        \"targetWordCount\": {\\n          \"type\": \"number\",\\n          \"description\": \"目标字数\"\\n        }\\n      },\\n      \"required\": [\"theme\", \"concepts\", \"academicLevel\", \"targetWordCount\"]\\n    },\\n    \"sessionId\": {\\n      \"type\": \"string\",\\n      \"description\": \"会话ID\"\\n    }\\n  },\\n  \"required\": [\"documentAnalysis\", \"sessionId\"],\\n  \"additionalProperties\": false\\n}"
       },
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.2,
@@ -124,19 +124,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=你是一个专业的论文大纲生成系统。请分析用户提供的文档内容并提取关键信息。
-
-分析要求：
-1. **主题识别**：确定论文的核心主题和研究方向
-2. **概念提取**：识别关键概念和术语
-3. **学术水平评估**：判断适合的学术水平
-4. **字数估算**：根据内容复杂度估算目标字数
-
-请分析以下文档内容：
-
-{{ $('大纲生成触发器').item.json.content || $('大纲生成触发器').item.json }}
-
-请提供详细的分析结果。",
+        "text": "=你是一个专业的论文大纲生成系统。请分析用户提供的文档内容并提取关键信息。\n\n分析要求：\n1. **主题识别**：确定论文的核心主题和研究方向\n2. **概念提取**：识别关键概念和术语\n3. **学术水平评估**：判断适合的学术水平\n4. **字数估算**：根据内容复杂度估算目标字数\n\n请分析以下文档内容：\n\n{{ $('大纲生成触发器').item.json.content || $('大纲生成触发器').item.json }}\n\n请提供详细的分析结果。",
         "hasOutputParser": true,
         "batching": {}
       },
@@ -152,7 +140,7 @@
     },
     {
       "parameters": {
-        "content": "## build_knowledge_queries()\n\n构建知识库搜索查询。\n- 基于文档分析结果生成搜索查询\n- 包含主题、概念、方法论等查询\n- 为大纲生成提供参考信息",
+        "content": "## build_knowledge_queries()\\n\\n构建知识库搜索查询。\\n- 基于文档分析结果生成搜索查询\\n- 包含主题、概念、方法论等查询\\n- 为大纲生成提供参考信息",
         "height": 500,
         "width": 440,
         "color": 5
@@ -169,7 +157,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// 构建知识库搜索查询\nfor (const item of $input.all()) {\n  const documentAnalysis = item.json.documentAnalysis;\n  \n  // 构建搜索查询\n  const searchQueries = [];\n  \n  // 主题相关查询\n  if (documentAnalysis.theme) {\n    searchQueries.push({\n      type: 'theme',\n      query: documentAnalysis.theme,\n      priority: 'high'\n    });\n  }\n  \n  // 关键概念查询\n  documentAnalysis.concepts.forEach(concept => {\n    searchQueries.push({\n      type: 'concept',\n      query: concept + ' 论文结构',\n      priority: 'medium'\n    });\n  });\n  \n  // 学科领域查询\n  const disciplineKeywords = [\n    '论文写作方法', '学术写作规范', '论文大纲模板',\n    documentAnalysis.theme + ' 研究方法'\n  ];\n  \n  disciplineKeywords.forEach(keyword => {\n    searchQueries.push({\n      type: 'methodology',\n      query: keyword,\n      priority: 'medium'\n    });\n  });\n  \n  // 添加通用论文结构查询\n  searchQueries.push({\n    type: 'structure',\n    query: '学术论文标准结构 章节安排',\n    priority: 'high'\n  });\n  \n  item.json.searchQueries = searchQueries;\n  item.json.originalAnalysis = documentAnalysis;\n  \n}\n\nreturn $input.all();"
+        "jsCode": "// 构建知识库搜索查询\\nfor (const item of $input.all()) {\\n  const documentAnalysis = item.json.documentAnalysis;\\n  \\n  // 构建搜索查询\\n  const searchQueries = [];\\n  \\n  // 主题相关查询\\n  if (documentAnalysis.theme) {\\n    searchQueries.push({\\n      type: 'theme',\\n      query: documentAnalysis.theme,\\n      priority: 'high'\\n    });\\n  }\\n  \\n  // 关键概念查询\\n  documentAnalysis.concepts.forEach(concept => {\\n    searchQueries.push({\\n      type: 'concept',\\n      query: concept + ' 论文结构',\\n      priority: 'medium'\\n    });\\n  });\\n  \\n  // 学科领域查询\\n  const disciplineKeywords = [\\n    '论文写作方法', '学术写作规范', '论文大纲模板',\\n    documentAnalysis.theme + ' 研究方法'\\n  ];\\n  \\n  disciplineKeywords.forEach(keyword => {\\n    searchQueries.push({\\n      type: 'methodology',\\n      query: keyword,\\n      priority: 'medium'\\n    });\\n  });\\n  \\n  // 添加通用论文结构查询\\n  searchQueries.push({\\n    type: 'structure',\\n    query: '学术论文标准结构 章节安排',\\n    priority: 'high'\\n  });\\n  \\n  item.json.searchQueries = searchQueries;\\n  item.json.originalAnalysis = documentAnalysis;\\n  \\n}\\n\\nreturn $input.all();"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -240,7 +228,7 @@
     },
     {
       "parameters": {
-        "content": "## generate_outline_structure()\n\n使用Gemini模型生成论文大纲结构。\n- 基于文档分析和知识库检索结果\n- 生成合理的章节结构\n- 确定各章节的内容要求",
+        "content": "## generate_outline_structure()\\n\\n使用Gemini模型生成论文大纲结构。\\n- 基于文档分析和知识库检索结果\\n- 生成合理的章节结构\\n- 确定各章节的内容要求",
         "height": 500,
         "width": 440,
         "color": 5
@@ -257,7 +245,7 @@
     {
       "parameters": {
         "schemaType": "manual",
-        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"outline\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"title\": {\n          \"type\": \"string\",\n          \"description\": \"论文标题\"\n        },\n        \"chapters\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"chapterNumber\": {\n                \"type\": \"number\"\n              },\n              \"title\": {\n                \"type\": \"string\"\n              },\n              \"sections\": {\n                \"type\": \"array\",\n                \"items\": {\n                  \"type\": \"object\",\n                  \"properties\": {\n                    \"sectionTitle\": {\n                      \"type\": \"string\"\n                    },\n                    \"content\": {\n                      \"type\": \"string\"\n                    },\n                    \"wordCount\": {\n                      \"type\": \"number\"\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n      },\n      \"required\": [\"title\", \"chapters\"]\n    },\n    \"guidelines\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"style\": {\n          \"type\": \"string\",\n          \"description\": \"写作风格\"\n        },\n        \"academicLevel\": {\n          \"type\": \"string\",\n          \"description\": \"学术水平\"\n        },\n        \"citationFormat\": {\n          \"type\": \"string\",\n          \"description\": \"引用格式\"\n        }\n      }\n    },\n    \"writingTasks\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"chapter\": {\n            \"type\": \"number\"\n          },\n          \"section\": {\n            \"type\": \"string\"\n          },\n          \"title\": {\n            \"type\": \"string\"\n          },\n          \"priority\": {\n            \"type\": \"string\",\n            \"enum\": [\"high\", \"medium\", \"low\"]\n          },\n          \"requirements\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"content\": {\n                \"type\": \"string\"\n              },\n              \"wordCount\": {\n                \"type\": \"number\"\n              },\n              \"objective\": {\n                \"type\": \"string\"\n              },\n              \"context\": {\n                \"type\": \"array\",\n                \"items\": {\n                  \"type\": \"string\"\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  },\n  \"required\": [\"outline\", \"guidelines\", \"writingTasks\"],\n  \"additionalProperties\": false\n}"
+        "inputSchema": "{\\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\\n  \"type\": \"object\",\\n  \"properties\": {\\n    \"outline\": {\\n      \"type\": \"object\",\\n      \"properties\": {\\n        \"title\": {\\n          \"type\": \"string\",\\n          \"description\": \"论文标题\"\\n        },\\n        \"chapters\": {\\n          \"type\": \"array\",\\n          \"items\": {\\n            \"type\": \"object\",\\n            \"properties\": {\\n              \"chapterNumber\": {\\n                \"type\": \"number\"\\n              },\\n              \"title\": {\\n                \"type\": \"string\"\\n              },\\n              \"sections\": {\\n                \"type\": \"array\",\\n                \"items\": {\\n                  \"type\": \"object\",\\n                  \"properties\": {\\n                    \"sectionTitle\": {\\n                      \"type\": \"string\"\\n                    },\\n                    \"content\": {\\n                      \"type\": \"string\"\\n                    },\\n                    \"wordCount\": {\\n                      \"type\": \"number\"\\n                    }\\n                  }\\n                }\\n              }\\n            }\\n          }\\n        }\\n      },\\n      \"required\": [\"title\", \"chapters\"]\\n    },\\n    \"guidelines\": {\\n      \"type\": \"object\",\\n      \"properties\": {\\n        \"style\": {\\n          \"type\": \"string\",\\n          \"description\": \"写作风格\"\\n        },\\n        \"academicLevel\": {\\n          \"type\": \"string\",\\n          \"description\": \"学术水平\"\\n        },\\n        \"citationFormat\": {\\n          \"type\": \"string\",\\n          \"description\": \"引用格式\"\\n        }\\n      }\\n    },\\n    \"writingTasks\": {\\n      \"type\": \"array\",\\n      \"items\": {\\n        \"type\": \"object\",\\n        \"properties\": {\\n          \"chapter\": {\\n            \"type\": \"number\"\\n          },\\n          \"section\": {\\n            \"type\": \"string\"\\n          },\\n          \"title\": {\\n            \"type\": \"string\"\\n          },\\n          \"priority\": {\\n            \"type\": \"string\",\\n            \"enum\": [\"high\", \"medium\", \"low\"]\\n          },\\n          \"requirements\": {\\n            \"type\": \"object\",\\n            \"properties\": {\\n              \"content\": {\\n                \"type\": \"string\"\\n              },\\n              \"wordCount\": {\\n                \"type\": \"number\"\\n              },\\n              \"objective\": {\\n                \"type\": \"string\"\\n              },\\n              \"context\": {\\n                \"type\": \"array\",\\n                \"items\": {\\n                  \"type\": \"string\"\\n                }\\n              }\\n            }\\n          }\\n        }\\n      }\\n    }\\n  },\\n  \"required\": [\"outline\", \"guidelines\", \"writingTasks\"],\\n  \"additionalProperties\": false\\n}"
       },
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.2,
@@ -271,27 +259,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=你是一个专业的学术论文大纲生成专家。请基于提供的文档分析和知识库检索结果，生成一个完整、合理的论文大纲。
-
-生成要求：
-1. **结构合理性**：确保章节逻辑清晰，层次分明
-2. **内容完整性**：覆盖研究主题的所有重要方面
-3. **学术规范性**：符合学术写作标准
-4. **可操作性**：为后续写作提供明确的指导
-
-## 文档分析结果
-**主题：** {{ $json.originalAnalysis.theme }}
-**关键概念：** {{ $json.originalAnalysis.concepts.join(', ') }}
-**学术水平：** {{ $json.originalAnalysis.academicLevel }}
-**目标字数：** {{ $json.originalAnalysis.targetWordCount }}字
-
-## 知识库检索结果
-{{ $json.knowledgeResults ? $json.knowledgeResults.map((result, index) => `### ${index + 1}. ${result.title}
-${result.content.substring(0, 200)}...
-**相关度：** ${result.score}
-`).join('') : '无检索结果' }}
-
-请生成详细的论文大纲，包括标题、章节结构、写作任务等。",
+        "text": "=你是一个专业的学术论文大纲生成专家。请基于提供的文档分析和知识库检索结果，生成一个完整、合理的论文大纲。\n\n生成要求：\n1. **结构合理性**：确保章节逻辑清晰，层次分明\n2. **内容完整性**：覆盖研究主题的所有重要方面\n3. **学术规范性**：符合学术写作标准\n4. **可操作性**：为后续写作提供明确的指导\n\n## 文档分析结果\n**主题：** {{ $json.originalAnalysis.theme }}\n**关键概念：** {{ $json.originalAnalysis.concepts.join(', ') }}\n**学术水平：** {{ $json.originalAnalysis.academicLevel }}\n**目标字数：** {{ $json.originalAnalysis.targetWordCount }}字\n\n## 知识库检索结果\n{{ $json.knowledgeResults ? $json.knowledgeResults.map((result, index) => `### ${index + 1}. ${result.title}\n${result.content.substring(0, 200)}...\n**相关度：** ${result.score}\n`).join('') : '无检索结果' }}\n\n请生成详细的论文大纲，包括标题、章节结构、写作任务等。",
         "hasOutputParser": true,
         "batching": {}
       },
@@ -308,7 +276,7 @@ ${result.content.substring(0, 200)}...
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// 处理大纲生成结果\nfor (const item of $input.all()) {\n  try {\n    const outlineResult = item.json;\n    const originalData = $('构建知识库搜索查询').first().json;\n    \n    // 验证大纲结构\n    const validationResult = validateOutline(outlineResult);\n    \n    if (!validationResult.isValid) {\n      item.json = {\n        error: '大纲验证失败',\n        errorMessage: validationResult.errorMessage,\n        processingStage: 'validation_failed'\n      };\n      continue;\n    }\n    \n    // 构建完整的大纲数据\n    const outlineData = {\n      outlineId: $('Outline Configs').item.json.outline_id,\n      sessionId: originalData.sessionId,\n      title: outlineResult.outline.title,\n      chapters: outlineResult.outline.chapters,\n      guidelines: outlineResult.guidelines,\n      writingTasks: outlineResult.writingTasks,\n      metadata: {\n        totalChapters: outlineResult.outline.chapters.length,\n        totalSections: outlineResult.writingTasks.length,\n        estimatedWordCount: outlineResult.writingTasks.reduce((sum, task) => sum + task.requirements.wordCount, 0),\n        academicLevel: outlineResult.guidelines.academicLevel,\n        generatedAt: new Date().toISOString()\n      },\n      originalAnalysis: originalData.originalAnalysis,\n      knowledgeResults: originalData.knowledgeResults || [],\n      processingStage: 'outline_generated',\n      status: 'completed'\n    };\n    \n    item.json = {\n      outlineData: outlineData,\n      validationResult: validationResult,\n      processingStage: 'outline_processed',\n      success: true\n    };\n    \n  } catch (error) {\n    item.json = {\n      error: '大纲处理失败',\n      errorMessage: error.message,\n      originalResponse: item.json,\n      processingStage: 'processing_failed'\n    };\n  }\n}\n\nfunction validateOutline(outline) {\n  // 检查必需字段\n  if (!outline.outline || !outline.outline.title || !outline.outline.chapters) {\n    return {\n      isValid: false,\n      errorMessage: '大纲结构不完整，缺少标题或章节信息'\n    };\n  }\n  \n  // 检查章节数量\n  const maxChapters = $('Outline Configs').item.json.max_outline_chapters;\n  if (outline.outline.chapters.length > maxChapters) {\n    return {\n      isValid: false,\n      errorMessage: `章节数量超过限制：${outline.outline.chapters.length}/${maxChapters}`\n    };\n  }\n  \n  // 检查写作任务\n  if (!outline.writingTasks || outline.writingTasks.length === 0) {\n    return {\n      isValid: false,\n      errorMessage: '缺少写作任务定义'\n    };\n  }\n  \n  return {\n    isValid: true,\n    errorMessage: null\n  };\n}\n\nreturn $input.all();"
+        "jsCode": "// 处理大纲生成结果\\nfor (const item of $input.all()) {\\n  try {\\n    const outlineResult = item.json;\\n    const originalData = $('构建知识库搜索查询').first().json;\\n    \\n    // 验证大纲结构\\n    const validationResult = validateOutline(outlineResult);\\n    \\n    if (!validationResult.isValid) {\\n      item.json = {\\n        error: '大纲验证失败',\\n        errorMessage: validationResult.errorMessage,\\n        processingStage: 'validation_failed'\\n      };\\n      continue;\\n    }\\n    \\n    // 构建完整的大纲数据\\n    const outlineData = {\\n      outlineId: $('Outline Configs').item.json.outline_id,\\n      sessionId: originalData.sessionId,\\n      title: outlineResult.outline.title,\\n      chapters: outlineResult.outline.chapters,\\n      guidelines: outlineResult.guidelines,\\n      writingTasks: outlineResult.writingTasks,\\n      metadata: {\\n        totalChapters: outlineResult.outline.chapters.length,\\n        totalSections: outlineResult.writingTasks.length,\\n        estimatedWordCount: outlineResult.writingTasks.reduce((sum, task) => sum + task.requirements.wordCount, 0),\\n        academicLevel: outlineResult.guidelines.academicLevel,\\n        generatedAt: new Date().toISOString()\\n      },\\n      originalAnalysis: originalData.originalAnalysis,\\n      knowledgeResults: originalData.knowledgeResults || [],\\n      processingStage: 'outline_generated',\\n      status: 'completed'\\n    };\\n    \\n    item.json = {\\n      outlineData: outlineData,\\n      validationResult: validationResult,\\n      processingStage: 'outline_processed',\\n      success: true\\n    };\\n    \\n  } catch (error) {\\n    item.json = {\\n      error: '大纲处理失败',\\n      errorMessage: error.message,\\n      originalResponse: item.json,\\n      processingStage: 'processing_failed'\\n    };\\n  }\\n}\\n\\nfunction validateOutline(outline) {\\n  // 检查必需字段\\n  if (!outline.outline || !outline.outline.title || !outline.outline.chapters) {\\n    return {\\n      isValid: false,\\n      errorMessage: '大纲结构不完整，缺少标题或章节信息'\\n    };\\n  }\\n  \\n  // 检查章节数量\\n  const maxChapters = $('Outline Configs').item.json.max_outline_chapters;\\n  if (outline.outline.chapters.length > maxChapters) {\\n    return {\\n      isValid: false,\\n      errorMessage: `章节数量超过限制：${outline.outline.chapters.length}/${maxChapters}`\\n    };\\n  }\\n  \\n  // 检查写作任务\\n  if (!outline.writingTasks || outline.writingTasks.length === 0) {\\n    return {\\n      isValid: false,\\n      errorMessage: '缺少写作任务定义'\\n    };\\n  }\\n  \\n  return {\\n    isValid: true,\\n    errorMessage: null\\n  };\\n}\\n\\nreturn $input.all();"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -322,7 +290,7 @@ ${result.content.substring(0, 200)}...
     },
     {
       "parameters": {
-        "content": "## trigger_writing_workflow()\n\n触发写作工作流。\n- 将生成的大纲发送给写作Agent\n- 启动分章节写作流程\n- 传递写作任务和指导原则",
+        "content": "## trigger_writing_workflow()\\n\\n触发写作工作流。\\n- 将生成的大纲发送给写作Agent\\n- 启动分章节写作流程\\n- 传递写作任务和指导原则",
         "height": 400,
         "width": 440,
         "color": 5
@@ -374,7 +342,7 @@ ${result.content.substring(0, 200)}...
     },
     {
       "parameters": {
-        "content": "## final_output()\n\n生成最终输出结果。\n- 返回生成的大纲数据\n- 提供写作任务列表\n- 包含处理状态信息",
+        "content": "## final_output()\\n\\n生成最终输出结果。\\n- 返回生成的大纲数据\\n- 提供写作任务列表\\n- 包含处理状态信息",
         "height": 300,
         "width": 440,
         "color": 5
@@ -391,7 +359,7 @@ ${result.content.substring(0, 200)}...
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// 生成最终输出\nfor (const item of $input.all()) {\n  const result = {\n    success: true,\n    message: '论文大纲生成完成',\n    data: {\n      outline: item.json.outlineData,\n      writingTasks: item.json.outlineData.writingTasks,\n      metadata: item.json.outlineData.metadata\n    },\n    timestamp: new Date().toISOString(),\n    processingTime: new Date() - new Date($('Document Analysis Parser').item.json.timestamp || Date.now())\n  };\n  \n  item.json = result;\n}\n\nreturn $input.all();"
+        "jsCode": "// 生成最终输出\\nfor (const item of $input.all()) {\\n  const result = {\\n    success: true,\\n    message: '论文大纲生成完成',\\n    data: {\\n      outline: item.json.outlineData,\\n      writingTasks: item.json.outlineData.writingTasks,\\n      metadata: item.json.outlineData.metadata\\n    },\\n    timestamp: new Date().toISOString(),\\n    processingTime: new Date() - new Date($('Document Analysis Parser').item.json.timestamp || Date.now())\\n  };\\n  \\n  item.json = result;\\n}\\n\\nreturn $input.all();"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
