@@ -16,34 +16,32 @@
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "llmApiUrl",
-              "value": "https://api.openai.com/v1/chat/completions"
-            },
-            {
-              "name": "llmModel",
-              "value": "gpt-4"
-            },
-            {
-              "name": "reviewerModel",
-              "value": "gpt-4"
-            },
-            {
-              "name": "writerWorkflowUrl",
-              "value": "http://localhost:5678/webhook/writing-agent"
-            },
-            {
-              "name": "assemblyWorkflowUrl",
-              "value": "http://localhost:5678/webhook/final-assembly"
-            },
-            {
-              "name": "maxRevisionCycles",
-              "value": "3"
-            }
-          ]
-        }
+        "values": [
+          {
+            "name": "llmApiUrl",
+            "value": "https://api.openai.com/v1/chat/completions"
+          },
+          {
+            "name": "llmModel",
+            "value": "gpt-4"
+          },
+          {
+            "name": "reviewerModel",
+            "value": "gpt-4"
+          },
+          {
+            "name": "writerWorkflowUrl",
+            "value": "http://localhost:5678/webhook/writing-agent"
+          },
+          {
+            "name": "assemblyWorkflowUrl",
+            "value": "http://localhost:5678/webhook/final-assembly"
+          },
+          {
+            "name": "maxRevisionCycles",
+            "value": "3"
+          }
+        ]
       },
       "id": "r2s3t4u5-v6w7-8901-bcde-f23456789012",
       "name": "环境配置",
