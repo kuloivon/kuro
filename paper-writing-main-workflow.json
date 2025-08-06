@@ -1,0 +1,352 @@
+{
+  "name": "论文写作主工作流 - 文档处理与内容提取",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerOn": "fileUpload",
+        "options": {
+          "allowedMimeTypes": ["application/pdf", "text/markdown", "text/plain"]
+        }
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "文件上传触发器",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 100],
+      "webhookId": "paper-upload-trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "={{ $json.mimetype }}",
+            "operation": "equal",
+            "rightValue": "application/pdf"
+          }
+        }
+      },
+      "id": "b2c3d4e5-f6g7-8901-bcde-f23456789012",
+      "name": "PDF文件判断",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [300, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "// PDF内容提取\nconst pdfParse = require('pdf-parse');\nconst fs = require('fs');\n\nfor (const item of $input.all()) {\n  try {\n    const fileBuffer = Buffer.from(item.binary.data, 'base64');\n    const pdfData = await pdfParse(fileBuffer);\n    \n    // 提取文本内容\n    const extractedText = pdfData.text;\n    const pageCount = pdfData.numpages;\n    \n    // 基础信息提取\n    const titleMatch = extractedText.match(/^(.{1,100})/m);\n    const title = titleMatch ? titleMatch[1].trim() : '未识别标题';\n    \n    // 分段处理\n    const paragraphs = extractedText\n      .split('\\n\\n')\n      .filter(p => p.trim().length > 50)\n      .map(p => p.replace(/\\s+/g, ' ').trim());\n    \n    item.json = {\n      fileType: 'pdf',\n      originalFileName: item.json.filename || 'unknown.pdf',\n      title: title,\n      fullText: extractedText,\n      paragraphs: paragraphs,\n      pageCount: pageCount,\n      wordCount: extractedText.split(/\\s+/).length,\n      extractedAt: new Date().toISOString(),\n      processingStage: 'text_extracted'\n    };\n    \n    // 保留原始文件数据\n    item.binary.originalFile = item.binary.data;\n    \n  } catch (error) {\n    item.json = {\n      error: 'PDF解析失败',\n      errorMessage: error.message,\n      processingStage: 'extraction_failed'\n    };\n  }\n}\n\nreturn $input.all();"
+      },
+      "id": "c3d4e5f6-g7h8-9012-cdef-345678901234",
+      "name": "PDF内容提取",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 80]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Markdown内容提取\nconst marked = require('marked');\n\nfor (const item of $input.all()) {\n  try {\n    const fileContent = Buffer.from(item.binary.data, 'base64').toString('utf-8');\n    \n    // 解析markdown结构\n    const tokens = marked.lexer(fileContent);\n    \n    // 提取标题\n    const headings = tokens.filter(token => token.type === 'heading');\n    const title = headings.length > 0 ? headings[0].text : '未识别标题';\n    \n    // 提取段落\n    const paragraphs = tokens\n      .filter(token => token.type === 'paragraph')\n      .map(token => token.text)\n      .filter(text => text.length > 50);\n    \n    // 提取图片引用\n    const images = [];\n    const imageRegex = /!\\[([^\\]]*)\\]\\(([^\\)]+)\\)/g;\n    let match;\n    while ((match = imageRegex.exec(fileContent)) !== null) {\n      images.push({\n        alt: match[1],\n        src: match[2],\n        description: match[1] || '图片描述待补充'\n      });\n    }\n    \n    // 提取链接引用\n    const links = [];\n    const linkRegex = /\\[([^\\]]+)\\]\\(([^\\)]+)\\)/g;\n    while ((match = linkRegex.exec(fileContent)) !== null) {\n      if (!match[2].match(/\\.(jpg|jpeg|png|gif|svg)$/i)) {\n        links.push({\n          text: match[1],\n          url: match[2]\n        });\n      }\n    }\n    \n    item.json = {\n      fileType: 'markdown',\n      originalFileName: item.json.filename || 'unknown.md',\n      title: title,\n      fullText: fileContent,\n      paragraphs: paragraphs,\n      headings: headings.map(h => ({ level: h.depth, text: h.text })),\n      images: images,\n      links: links,\n      wordCount: fileContent.split(/\\s+/).length,\n      extractedAt: new Date().toISOString(),\n      processingStage: 'text_extracted'\n    };\n    \n    item.binary.originalFile = item.binary.data;\n    \n  } catch (error) {\n    item.json = {\n      error: 'Markdown解析失败',\n      errorMessage: error.message,\n      processingStage: 'extraction_failed'\n    };\n  }\n}\n\nreturn $input.all();"
+      },
+      "id": "d4e5f6g7-h8i9-0123-def0-456789012345",
+      "name": "Markdown内容提取",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 200]
+    },
+    {
+      "parameters": {},
+      "id": "e5f6g7h8-i9j0-1234-ef01-567890123456",
+      "name": "内容合并",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [700, 140]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "={{ $json.processingStage }}",
+            "operation": "equal",
+            "rightValue": "extraction_failed"
+          }
+        }
+      },
+      "id": "f6g7h8i9-j0k1-2345-f012-678901234567",
+      "name": "错误检查",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 140]
+    },
+    {
+      "parameters": {
+        "url": "{{ $('环境配置').item.json.llmApiUrl }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "{{ $('环境配置').item.json.llmModel }}"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"system\", \"content\": \"你是一个专业的学术文档分析专家。请分析提供的文档内容，提取关键信息并整理成结构化格式。\\n\\n分析要求：\\n1. 识别文档主题和核心论点\\n2. 提取关键概念和术语\\n3. 总结主要论据和支持证据\\n4. 识别图表、数据等论据素材\\n5. 生成简洁的摘要\\n\\n输出格式为JSON：\\n{\\n  \\\"title\\\": \\\"文档标题\\\",\\n  \\\"theme\\\": \\\"主要主题\\\",\\n  \\\"summary\\\": \\\"内容摘要(200-300字)\\\",\\n  \\\"keyPoints\\\": [\\\"关键点1\\\", \\\"关键点2\\\"],\\n  \\\"evidence\\\": {\\n    \\\"textual\\\": [\\\"文字论据1\\\", \\\"文字论据2\\\"],\\n    \\\"visual\\\": [\\\"图表描述1\\\", \\\"图表描述2\\\"]\\n  },\\n  \\\"concepts\\\": [\\\"概念1\\\", \\\"概念2\\\"],\\n  \\\"readabilityScore\\\": 评分(1-10)\\n}\"}, {\"role\": \"user\", \"content\": \"请分析以下文档内容：\\n\\n标题：{{ $json.title }}\\n文档类型：{{ $json.fileType }}\\n\\n主要内容：\\n{{ $json.fullText.substring(0, 8000) }}\\n\\n{{ $json.images ? '包含图片：\\n' + $json.images.map(img => `- ${img.description || img.alt}`).join('\\n') : '' }}\"}]"
+            },
+            {
+              "name": "temperature",
+              "value": "0.2"
+            },
+            {
+              "name": "max_tokens",
+              "value": "2000"
+            }
+          ]
+        }
+      },
+      "id": "g7h8i9j0-k1l2-3456-0123-789012345678",
+      "name": "LLM内容分析",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1100, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 处理LLM分析结果并生成结构化输出\nfor (const item of $input.all()) {\n  try {\n    const originalData = $('内容合并').first().json;\n    const llmResponse = JSON.parse(item.json.choices[0].message.content);\n    \n    // 组合分析结果\n    const analysisResult = {\n      // 基础信息\n      originalFileName: originalData.originalFileName,\n      fileType: originalData.fileType,\n      processedAt: new Date().toISOString(),\n      \n      // 文档分析结果\n      documentAnalysis: {\n        title: llmResponse.title || originalData.title,\n        theme: llmResponse.theme,\n        summary: llmResponse.summary,\n        keyPoints: llmResponse.keyPoints || [],\n        concepts: llmResponse.concepts || [],\n        readabilityScore: llmResponse.readabilityScore || 5\n      },\n      \n      // 论据素材\n      evidenceMaterials: {\n        textual: llmResponse.evidence?.textual || [],\n        visual: llmResponse.evidence?.visual || [],\n        images: originalData.images || [],\n        links: originalData.links || []\n      },\n      \n      // 原始内容（用于后续处理）\n      sourceContent: {\n        fullText: originalData.fullText,\n        paragraphs: originalData.paragraphs,\n        wordCount: originalData.wordCount,\n        pageCount: originalData.pageCount\n      },\n      \n      // 处理状态\n      processingStage: 'analysis_completed',\n      nextStage: 'outline_generation'\n    };\n    \n    item.json = analysisResult;\n    \n  } catch (error) {\n    item.json = {\n      error: 'LLM分析结果处理失败',\n      errorMessage: error.message,\n      originalResponse: item.json,\n      processingStage: 'analysis_failed'\n    };\n  }\n}\n\nreturn $input.all();"
+      },
+      "id": "h8i9j0k1-l2m3-4567-1234-890123456789",
+      "name": "分析结果处理",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 生成易读的Markdown输出文件\nfor (const item of $input.all()) {\n  const data = item.json;\n  \n  let markdownContent = `# 文档分析报告\\n\\n`;\n  markdownContent += `**原文件名：** ${data.originalFileName}\\n`;\n  markdownContent += `**文件类型：** ${data.fileType.toUpperCase()}\\n`;\n  markdownContent += `**处理时间：** ${data.processedAt}\\n`;\n  markdownContent += `**可读性评分：** ${data.documentAnalysis.readabilityScore}/10\\n\\n`;\n  \n  markdownContent += `## 📋 文档摘要\\n\\n`;\n  markdownContent += `**主题：** ${data.documentAnalysis.theme}\\n\\n`;\n  markdownContent += `**摘要：**\\n${data.documentAnalysis.summary}\\n\\n`;\n  \n  markdownContent += `## 🔑 关键要点\\n\\n`;\n  data.documentAnalysis.keyPoints.forEach((point, index) => {\n    markdownContent += `${index + 1}. ${point}\\n`;\n  });\n  markdownContent += `\\n`;\n  \n  markdownContent += `## 💡 核心概念\\n\\n`;\n  data.documentAnalysis.concepts.forEach((concept, index) => {\n    markdownContent += `- **${concept}**\\n`;\n  });\n  markdownContent += `\\n`;\n  \n  markdownContent += `## 📝 论据素材\\n\\n`;\n  markdownContent += `### 文字论据\\n\\n`;\n  data.evidenceMaterials.textual.forEach((evidence, index) => {\n    markdownContent += `${index + 1}. ${evidence}\\n`;\n  });\n  markdownContent += `\\n`;\n  \n  if (data.evidenceMaterials.visual.length > 0) {\n    markdownContent += `### 图表论据\\n\\n`;\n    data.evidenceMaterials.visual.forEach((visual, index) => {\n      markdownContent += `${index + 1}. ${visual}\\n`;\n    });\n    markdownContent += `\\n`;\n  }\n  \n  if (data.evidenceMaterials.images.length > 0) {\n    markdownContent += `### 图片资源\\n\\n`;\n    data.evidenceMaterials.images.forEach((img, index) => {\n      markdownContent += `${index + 1}. **${img.alt || '图片'}**：${img.description}\\n`;\n      markdownContent += `   - 来源：${img.src}\\n`;\n    });\n    markdownContent += `\\n`;\n  }\n  \n  markdownContent += `## 📊 文档统计\\n\\n`;\n  markdownContent += `- **字数：** ${data.sourceContent.wordCount}\\n`;\n  if (data.sourceContent.pageCount) {\n    markdownContent += `- **页数：** ${data.sourceContent.pageCount}\\n`;\n  }\n  markdownContent += `- **段落数：** ${data.sourceContent.paragraphs.length}\\n`;\n  markdownContent += `- **图片数：** ${data.evidenceMaterials.images.length}\\n`;\n  markdownContent += `- **链接数：** ${data.evidenceMaterials.links.length}\\n\\n`;\n  \n  markdownContent += `---\\n\\n`;\n  markdownContent += `*本报告由文档分析工作流自动生成*\\n`;\n  \n  // 生成文件名\n  const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');\n  const fileName = `document-analysis-${timestamp}.md`;\n  \n  item.json.outputMarkdown = markdownContent;\n  item.json.outputFileName = fileName;\n  item.binary = {\n    data: Buffer.from(markdownContent).toString('base64'),\n    fileName: fileName,\n    mimeType: 'text/markdown'\n  };\n}\n\nreturn $input.all();"
+      },
+      "id": "i9j0k1l2-m3n4-5678-2345-901234567890",
+      "name": "生成易读Markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 100]
+    },
+    {
+      "parameters": {
+        "url": "{{ $('环境配置').item.json.outlineWorkflowUrl }}",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "documentAnalysis",
+              "value": "={{ $json }}"
+            }
+          ]
+        }
+      },
+      "id": "j0k1l2m3-n4o5-6789-3456-012345678901",
+      "name": "触发大纲生成工作流",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1700, 100]
+    },
+    {
+      "parameters": {
+        "message": "❌ 文件处理失败：{{ $json.errorMessage }}",
+        "additionalFields": {
+          "title": "文档处理错误"
+        }
+      },
+      "id": "k1l2m3n4-o5p6-7890-4567-123456789012",
+      "name": "错误通知",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "llmApiUrl",
+              "value": "https://api.openai.com/v1/chat/completions"
+            },
+            {
+              "name": "llmModel", 
+              "value": "gpt-4"
+            },
+            {
+              "name": "outlineWorkflowUrl",
+              "value": "http://localhost:5678/webhook/outline-generation"
+            }
+          ]
+        }
+      },
+      "id": "l2m3n4o5-p6q7-8901-5678-234567890123",
+      "name": "环境配置",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "message": "✅ 文档分析完成\\n\\n**文件：** {{ $json.originalFileName }}\\n**主题：** {{ $json.documentAnalysis.theme }}\\n**摘要：** {{ $json.documentAnalysis.summary.substring(0, 100) }}...\\n\\n下一步：生成论文大纲",
+        "additionalFields": {
+          "title": "文档处理成功"
+        }
+      },
+      "id": "m3n4o5p6-q7r8-9012-6789-345678901234",
+      "name": "成功通知",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [1900, 100]
+    }
+  ],
+  "connections": {
+    "文件上传触发器": {
+      "main": [
+        [
+          {
+            "node": "PDF文件判断",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF文件判断": {
+      "main": [
+        [
+          {
+            "node": "PDF内容提取",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Markdown内容提取",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF内容提取": {
+      "main": [
+        [
+          {
+            "node": "内容合并",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markdown内容提取": {
+      "main": [
+        [
+          {
+            "node": "内容合并",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "内容合并": {
+      "main": [
+        [
+          {
+            "node": "错误检查",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "错误检查": {
+      "main": [
+        [
+          {
+            "node": "LLM内容分析",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "错误通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM内容分析": {
+      "main": [
+        [
+          {
+            "node": "分析结果处理",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "分析结果处理": {
+      "main": [
+        [
+          {
+            "node": "生成易读Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "生成易读Markdown": {
+      "main": [
+        [
+          {
+            "node": "触发大纲生成工作流",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "触发大纲生成工作流": {
+      "main": [
+        [
+          {
+            "node": "成功通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "main-workflow-v1.0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "description": "论文写作主工作流：处理PDF/MD文件上传，提取内容、分析结构，生成易读的分析报告并触发后续大纲生成流程。支持错误处理和人工干预点。",
+    "category": "document-processing",
+    "tags": ["论文写作", "文档分析", "内容提取", "PDF处理", "Markdown处理"]
+  }
+}
