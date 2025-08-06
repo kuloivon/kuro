@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "triggerOn": "fileUpload",
+        "triggerOn": "file",
         "options": {
           "allowedMimeTypes": ["application/pdf", "text/markdown", "text/plain"]
         }
@@ -80,8 +80,8 @@
     {
       "parameters": {
         "url": "{{ $('环境配置').item.json.llmApiUrl }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "method": "POST",
         "sendHeaders": true,
         "headerParameters": {
@@ -337,12 +337,9 @@
     }
   },
   "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  },
+  "settings": {},
   "versionId": "main-workflow-v1.0",
   "meta": {
-    "templateCredsSetupCompleted": true,
     "description": "论文写作主工作流：处理PDF/MD文件上传，提取内容、分析结构，生成易读的分析报告并触发后续大纲生成流程。支持错误处理和人工干预点。",
     "category": "document-processing",
     "tags": ["论文写作", "文档分析", "内容提取", "PDF处理", "Markdown处理"]

@@ -68,8 +68,8 @@
     {
       "parameters": {
         "url": "{{ $('环境配置').item.json.llmApiUrl }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "method": "POST",
         "sendHeaders": true,
         "headerParameters": {
@@ -462,12 +462,9 @@
     }
   },
   "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  },
+  "settings": {},
   "versionId": "writing-agent-v1.0",
   "meta": {
-    "templateCredsSetupCompleted": true,
     "description": "写作Agent工作流：处理论文分任务写作，支持批量并行处理、任务队列管理、质量预检查和进度跟踪。自动按章节顺序和优先级安排写作任务。",
     "category": "ai-integration",
     "tags": ["分任务写作", "并行处理", "任务队列", "进度跟踪", "质量控制"]

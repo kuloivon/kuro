@@ -144,8 +144,8 @@
     {
       "parameters": {
         "url": "{{ $('环境配置').item.json.llmApiUrl }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "method": "POST",
         "sendHeaders": true,
         "headerParameters": {
@@ -467,12 +467,9 @@
     }
   },
   "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  },
+  "settings": {},
   "versionId": "final-assembly-v1.0",
   "meta": {
-    "templateCredsSetupCompleted": true,
     "description": "论文最终整合工作流：收集已批准的章节内容，进行全局一致性检查，整合成完整论文并生成多种格式输出。支持质量控制和进度监控。",
     "category": "document-processing",
     "tags": ["论文整合", "全局审核", "一致性检查", "多格式输出", "质量控制"]

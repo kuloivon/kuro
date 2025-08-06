@@ -62,8 +62,8 @@
     {
       "parameters": {
         "url": "{{ $('环境配置').item.json.llmApiUrl }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "method": "POST",
         "sendHeaders": true,
         "headerParameters": {
@@ -361,12 +361,9 @@
     }
   },
   "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  },
+  "settings": {},
   "versionId": "quality-review-v1.0",
   "meta": {
-    "templateCredsSetupCompleted": true,
     "description": "质量检验Agent工作流：对写作内容进行全面质量审核，包括逻辑检验、语言规范检查、结构分析等。支持多轮修订机制和详细的问题反馈。",
     "category": "quality-assurance",
     "tags": ["质量审核", "逻辑检验", "修订管理", "问题分析", "内容批准"]
