@@ -16,30 +16,28 @@
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "llmApiUrl",
-              "value": "https://api.openai.com/v1/chat/completions"
-            },
-            {
-              "name": "llmModel",
-              "value": "gpt-4"
-            },
-            {
-              "name": "maxConcurrentTasks",
-              "value": "3"
-            },
-            {
-              "name": "reviewWorkflowUrl",
-              "value": "http://localhost:5678/webhook/quality-review"
-            },
-            {
-              "name": "taskStatusUrl",
-              "value": "http://localhost:3000/api/task-status"
-            }
-          ]
-        }
+        "values": [
+          {
+            "name": "llmApiUrl",
+            "value": "https://api.openai.com/v1/chat/completions"
+          },
+          {
+            "name": "llmModel",
+            "value": "gpt-4"
+          },
+          {
+            "name": "maxConcurrentTasks",
+            "value": "3"
+          },
+          {
+            "name": "reviewWorkflowUrl",
+            "value": "http://localhost:5678/webhook/quality-review"
+          },
+          {
+            "name": "taskStatusUrl",
+            "value": "http://localhost:3000/api/task-status"
+          }
+        ]
       },
       "id": "x2y3z4a5-b6c7-8901-bcde-f23456789012",
       "name": "环境配置",

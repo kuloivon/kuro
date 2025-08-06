@@ -16,30 +16,28 @@
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "llmApiUrl",
-              "value": "https://api.openai.com/v1/chat/completions"
-            },
-            {
-              "name": "llmModel",
-              "value": "gpt-4"
-            },
-            {
-              "name": "embeddingApiUrl",
-              "value": "https://api.openai.com/v1/embeddings"
-            },
-            {
-              "name": "knowledgeBaseUrl",
-              "value": "http://localhost:3000/api/knowledge-search"
-            },
-            {
-              "name": "writingWorkflowUrl",
-              "value": "http://localhost:5678/webhook/writing-agent"
-            }
-          ]
-        }
+        "values": [
+          {
+            "name": "llmApiUrl",
+            "value": "https://api.openai.com/v1/chat/completions"
+          },
+          {
+            "name": "llmModel",
+            "value": "gpt-4"
+          },
+          {
+            "name": "embeddingApiUrl",
+            "value": "https://api.openai.com/v1/embeddings"
+          },
+          {
+            "name": "knowledgeBaseUrl",
+            "value": "http://localhost:3000/api/knowledge-search"
+          },
+          {
+            "name": "writingWorkflowUrl",
+            "value": "http://localhost:5678/webhook/writing-agent"
+          }
+        ]
       },
       "id": "p2q3r4s5-t6u7-8901-bcde-f23456789012",
       "name": "环境配置",

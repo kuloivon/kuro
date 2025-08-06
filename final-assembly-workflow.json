@@ -16,34 +16,32 @@
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "llmApiUrl",
-              "value": "https://api.openai.com/v1/chat/completions"
-            },
-            {
-              "name": "llmModel",
-              "value": "gpt-4"
-            },
-            {
-              "name": "assemblyModel",
-              "value": "gpt-4-turbo"
-            },
-            {
-              "name": "storageApiUrl",
-              "value": "http://localhost:3000/api/content-storage"
-            },
-            {
-              "name": "outputFormatUrl",
-              "value": "http://localhost:3000/api/format-output"
-            },
-            {
-              "name": "minCompletionRate",
-              "value": "0.8"
-            }
-          ]
-        }
+        "values": [
+          {
+            "name": "llmApiUrl",
+            "value": "https://api.openai.com/v1/chat/completions"
+          },
+          {
+            "name": "llmModel",
+            "value": "gpt-4"
+          },
+          {
+            "name": "assemblyModel",
+            "value": "gpt-4-turbo"
+          },
+          {
+            "name": "storageApiUrl",
+            "value": "http://localhost:3000/api/content-storage"
+          },
+          {
+            "name": "outputFormatUrl",
+            "value": "http://localhost:3000/api/format-output"
+          },
+          {
+            "name": "minCompletionRate",
+            "value": "0.8"
+          }
+        ]
       },
       "id": "g2h3i4j5-k6l7-8901-bcde-f23456789012",
       "name": "环境配置",

@@ -175,22 +175,20 @@
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "llmApiUrl",
-              "value": "https://api.openai.com/v1/chat/completions"
-            },
-            {
-              "name": "llmModel", 
-              "value": "gpt-4"
-            },
-            {
-              "name": "outlineWorkflowUrl",
-              "value": "http://localhost:5678/webhook/outline-generation"
-            }
-          ]
-        }
+        "values": [
+          {
+            "name": "llmApiUrl",
+            "value": "https://api.openai.com/v1/chat/completions"
+          },
+          {
+            "name": "llmModel",
+            "value": "gpt-4"
+          },
+          {
+            "name": "outlineWorkflowUrl",
+            "value": "http://localhost:5678/webhook/outline-generation"
+          }
+        ]
       },
       "id": "l2m3n4o5-p6q7-8901-5678-234567890123",
       "name": "环境配置",
