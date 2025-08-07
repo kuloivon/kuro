@@ -1,6 +1,22 @@
 {
-  "name": "论文最终整合工作流 - 全文组装与生成",
+  "name": "AI论文最终整合工作流 - 全文组装与生成 (基于Gemini-DR格式重构)",
   "nodes": [
+    {
+      "parameters": {
+        "content": "### final_assembly_trigger()\n- 接收论文整合请求\n- 支持多种操作类型：add_approved_content, start_assembly, get_status\n- 使用webhook触发器",
+        "height": 400,
+        "width": 440,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1580,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "assembly-trigger-note",
+      "name": "Sticky Note"
+    },
     {
       "parameters": {
         "httpMethod": "POST",
@@ -11,43 +27,125 @@
       "name": "最终整合触发器",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [100, 100],
+      "position": [-1580, -60],
       "webhookId": "final-assembly"
     },
     {
       "parameters": {
-        "values": [
-          {
-            "name": "llmApiUrl",
-            "value": "https://api.openai.com/v1/chat/completions"
-          },
-          {
-            "name": "llmModel",
-            "value": "gpt-4"
-          },
-          {
-            "name": "assemblyModel",
-            "value": "gpt-4-turbo"
-          },
-          {
-            "name": "storageApiUrl",
-            "value": "http://localhost:3000/api/content-storage"
-          },
-          {
-            "name": "outputFormatUrl",
-            "value": "http://localhost:3000/api/format-output"
-          },
-          {
-            "name": "minCompletionRate",
-            "value": "0.8"
-          }
-        ]
+        "assignments": {
+          "assignments": [
+            {
+              "id": "config-1",
+              "name": "number_of_assembly_loops",
+              "value": 3,
+              "type": "number"
+            },
+            {
+              "id": "config-2",
+              "name": "min_completion_rate",
+              "value": 0.8,
+              "type": "number"
+            },
+            {
+              "id": "config-3",
+              "name": "current_date",
+              "value": "={{$now.format('yyyy-LL-dd')}}",
+              "type": "string"
+            },
+            {
+              "id": "config-4",
+              "name": "assembly_id",
+              "value": "=assembly:final-assembly:{{ $json.sessionId }}:",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
       },
-      "id": "g2h3i4j5-k6l7-8901-bcde-f23456789012",
-      "name": "环境配置",
       "type": "n8n-nodes-base.set",
-      "typeVersion": 2,
-      "position": [100, 300]
+      "typeVersion": 3.4,
+      "position": [
+        -1880,
+        -60
+      ],
+      "id": "assembly-configs",
+      "name": "Assembly Configs"
+    },
+    {
+      "parameters": {
+        "content": "### Assembly Configs\n- `number_of_assembly_loops` (*最大整合轮次*): 3\n- `min_completion_rate` (*最小完成度要求*): 0.8\n\n### variables:\n- `current_date`\n- `assembly_id`\n\n",
+        "height": 300,
+        "width": 340,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1980,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "assembly-configs-note",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1540,
+        200
+      ],
+      "id": "assembly-gemini-model",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "sUx2BOKL53mwfOJl",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"add_approved_content\", \"start_assembly\", \"get_status\"],\n      \"description\": \"操作类型\"\n    },\n    \"content\": {\n      \"type\": \"object\",\n      \"description\": \"内容数据\"\n    },\n    \"sessionId\": {\n      \"type\": \"string\",\n      \"description\": \"会话ID\"\n    }\n  },\n  \"required\": [\"action\", \"sessionId\"],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -1260,
+        180
+      ],
+      "id": "assembly-input-parser",
+      "name": "Assembly Input Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是一个专业的论文整合系统。请分析用户请求并确定操作类型。
+
+输入格式要求：
+- 操作类型：add_approved_content（添加已批准内容）、start_assembly（开始整合）、get_status（获取状态）
+- 内容数据：当操作类型为add_approved_content时，包含章节内容信息
+- 会话ID：用于跟踪整合进度
+
+请根据输入确定正确的操作类型和相关信息。
+
+输入内容：{{ $('最终整合触发器').item.json }}",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -1480,
+        -60
+      ],
+      "id": "assembly-request-parser",
+      "name": "Assembly Request Parser",
+      "notesInFlow": true
     },
     {
       "parameters": {
@@ -60,15 +158,46 @@
           }
         }
       },
-      "id": "h3i4j5k6-l7m8-9012-cdef-345678901234",
+      "id": "assembly-action-check",
       "name": "判断操作类型",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [300, 100]
+      "position": [-1200, -60]
     },
     {
       "parameters": {
-        "url": "{{ $('环境配置').item.json.storageApiUrl }}",
+        "content": "## store_approved_content()\n\n存储已批准的章节内容到内容管理系统。\n- 验证内容完整性\n- 更新章节状态\n- 记录质量评分",
+        "height": 400,
+        "width": 440,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1000,
+        -420
+      ],
+      "typeVersion": 1,
+      "id": "store-content-note",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 存储已批准内容\nfor (const item of $input.all()) {\n  const approvedContent = item.json.content;\n  const sessionId = item.json.sessionId;\n  \n  // 验证内容完整性\n  const validationResult = validateContent(approvedContent);\n  \n  if (!validationResult.isValid) {\n    item.json = {\n      error: '内容验证失败',\n      errorMessage: validationResult.errorMessage,\n      processingStage: 'validation_failed'\n    };\n    continue;\n  }\n  \n  // 构建存储数据\n  const storageData = {\n    sessionId: sessionId,\n    assemblyId: $('Assembly Configs').item.json.assembly_id,\n    content: {\n      chapter: approvedContent.chapter,\n      section: approvedContent.section,\n      title: approvedContent.title,\n      content: approvedContent.content,\n      qualityScore: approvedContent.qualityScore || 0,\n      wordCount: approvedContent.wordCount || 0,\n      revisionCycles: approvedContent.revisionCycles || 0,\n      approvedAt: new Date().toISOString(),\n      finalQualityScore: approvedContent.finalQualityScore || approvedContent.qualityScore || 0\n    },\n    metadata: {\n      storedAt: new Date().toISOString(),\n      version: '1.0'\n    }\n  };\n  \n  item.json = {\n    storageData: storageData,\n    validationResult: validationResult,\n    processingStage: 'content_validated',\n    readyForStorage: true\n  };\n}\n\nfunction validateContent(content) {\n  const requiredFields = ['chapter', 'section', 'title', 'content'];\n  const missingFields = requiredFields.filter(field => !content[field]);\n  \n  if (missingFields.length > 0) {\n    return {\n      isValid: false,\n      errorMessage: `缺少必需字段: ${missingFields.join(', ')}`\n    };\n  }\n  \n  if (!content.content || content.content.trim().length < 100) {\n    return {\n      isValid: false,\n      errorMessage: '内容长度不足，至少需要100字符'\n    };\n  }\n  \n  return {\n    isValid: true,\n    errorMessage: null\n  };\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        -80
+      ],
+      "id": "store-approved-content",
+      "name": "存储已批准内容",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/content-storage",
         "method": "POST",
         "sendBody": true,
         "bodyParameters": {
@@ -78,21 +207,40 @@
               "value": "store_content"
             },
             {
-              "name": "content",
-              "value": "={{ $json.approvedContent }}"
+              "name": "data",
+              "value": "={{ $json.storageData }}"
             }
           ]
+        },
+        "options": {
+          "timeout": 30000
         }
       },
-      "id": "i4j5k6l7-m8n9-0123-def0-456789012345",
-      "name": "存储已批准内容",
+      "id": "content-storage-api",
+      "name": "内容存储API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [500, 80]
+      "position": [-600, -80]
     },
     {
       "parameters": {
-        "url": "{{ $('环境配置').item.json.storageApiUrl }}",
+        "content": "## check_completion_status()\n\n检查论文完成状态和内容完整性。\n- 统计已完成的章节\n- 计算完成度百分比\n- 检查章节连续性\n- 评估整体质量",
+        "height": 500,
+        "width": 440,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -400,
+        -420
+      ],
+      "typeVersion": 1,
+      "id": "completion-status-note",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/content-storage",
         "method": "GET",
         "sendQuery": true,
         "queryParameters": {
@@ -102,27 +250,39 @@
               "value": "get_all_content"
             },
             {
+              "name": "sessionId",
+              "value": "={{ $('Assembly Request Parser').item.json.sessionId }}"
+            },
+            {
               "name": "include_stats",
               "value": "true"
             }
           ]
+        },
+        "options": {
+          "timeout": 30000
         }
       },
-      "id": "j5k6l7m8-n9o0-1234-ef01-567890123456",
+      "id": "check-content-completeness",
       "name": "检查内容完整性",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [700, 80]
+      "position": [-400, -80]
     },
     {
       "parameters": {
-        "functionCode": "// 检查论文完整性并决定是否可以开始整合\nfor (const item of $input.all()) {\n  const storageResponse = item.json;\n  const allContents = storageResponse.contents || [];\n  const stats = storageResponse.stats || {};\n  \n  // 按章节和小节排序\n  const sortedContents = allContents.sort((a, b) => {\n    if (a.chapter !== b.chapter) return a.chapter - b.chapter;\n    return a.section.localeCompare(b.section);\n  });\n  \n  // 统计完成情况\n  const expectedChapters = stats.expectedChapters || 6; // 默认6章\n  const completedChapters = new Set(allContents.map(c => c.chapter)).size;\n  const completionRate = completedChapters / expectedChapters;\n  \n  const minCompletionRate = parseFloat($('环境配置').item.json.minCompletionRate);\n  const readyForAssembly = completionRate >= minCompletionRate;\n  \n  // 检查章节连续性\n  const chapterNumbers = [...new Set(allContents.map(c => c.chapter))].sort((a, b) => a - b);\n  const hasGaps = chapterNumbers.some((num, index) => {\n    return index > 0 && num !== chapterNumbers[index - 1] + 1;\n  });\n  \n  // 分析质量分布\n  const qualityStats = {\n    averageScore: allContents.reduce((sum, c) => sum + c.finalQualityScore, 0) / allContents.length,\n    minScore: Math.min(...allContents.map(c => c.finalQualityScore)),\n    maxScore: Math.max(...allContents.map(c => c.finalQualityScore)),\n    excellentCount: allContents.filter(c => c.finalQualityScore >= 9).length,\n    goodCount: allContents.filter(c => c.finalQualityScore >= 7).length,\n    needsAttentionCount: allContents.filter(c => c.finalQualityScore < 6).length\n  };\n  \n  const assemblyStatus = {\n    readyForAssembly: readyForAssembly && !hasGaps,\n    completionRate: completionRate,\n    completedChapters: completedChapters,\n    expectedChapters: expectedChapters,\n    totalSections: allContents.length,\n    hasGaps: hasGaps,\n    missingChapters: hasGaps ? [] : [], // 这里可以详细计算缺失章节\n    qualityStats: qualityStats,\n    contents: sortedContents,\n    statusMessage: readyForAssembly ? \n      '✅ 内容完整，可以开始整合' : \n      `⏳ 完成度 ${(completionRate * 100).toFixed(1)}%，需要等待更多内容`,\n    nextAction: readyForAssembly ? 'start_assembly' : 'wait_for_content'\n  };\n  \n  item.json = assemblyStatus;\n}\n\nreturn $input.all();"
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 评估整合准备度\nfor (const item of $input.all()) {\n  const storageResponse = item.json;\n  const allContents = storageResponse.contents || [];\n  const stats = storageResponse.stats || {};\n  \n  // 按章节和小节排序\n  const sortedContents = allContents.sort((a, b) => {\n    if (a.chapter !== b.chapter) return a.chapter - b.chapter;\n    return a.section.localeCompare(b.section);\n  });\n  \n  // 统计完成情况\n  const expectedChapters = stats.expectedChapters || 6;\n  const completedChapters = new Set(allContents.map(c => c.chapter)).size;\n  const completionRate = completedChapters / expectedChapters;\n  \n  const minCompletionRate = $('Assembly Configs').item.json.min_completion_rate;\n  const readyForAssembly = completionRate >= minCompletionRate;\n  \n  // 检查章节连续性\n  const chapterNumbers = [...new Set(allContents.map(c => c.chapter))].sort((a, b) => a - b);\n  const hasGaps = chapterNumbers.some((num, index) => {\n    return index > 0 && num !== chapterNumbers[index - 1] + 1;\n  });\n  \n  // 分析质量分布\n  const qualityStats = {\n    averageScore: allContents.length > 0 ? \n      allContents.reduce((sum, c) => sum + (c.finalQualityScore || 0), 0) / allContents.length : 0,\n    minScore: allContents.length > 0 ? Math.min(...allContents.map(c => c.finalQualityScore || 0)) : 0,\n    maxScore: allContents.length > 0 ? Math.max(...allContents.map(c => c.finalQualityScore || 0)) : 0,\n    excellentCount: allContents.filter(c => (c.finalQualityScore || 0) >= 9).length,\n    goodCount: allContents.filter(c => (c.finalQualityScore || 0) >= 7).length,\n    needsAttentionCount: allContents.filter(c => (c.finalQualityScore || 0) < 6).length\n  };\n  \n  const assemblyStatus = {\n    readyForAssembly: readyForAssembly && !hasGaps,\n    completionRate: completionRate,\n    completedChapters: completedChapters,\n    expectedChapters: expectedChapters,\n    totalSections: allContents.length,\n    hasGaps: hasGaps,\n    missingChapters: hasGaps ? [] : [],\n    qualityStats: qualityStats,\n    contents: sortedContents,\n    statusMessage: readyForAssembly ? \n      '✅ 内容完整，可以开始整合' : \n      `⏳ 完成度 ${(completionRate * 100).toFixed(1)}%，需要等待更多内容`,\n    nextAction: readyForAssembly ? 'start_assembly' : 'wait_for_content'\n  };\n  \n  item.json = assemblyStatus;\n}\n\nreturn $input.all();"
       },
-      "id": "k6l7m8n9-o0p1-2345-f012-678901234567",
-      "name": "评估整合准备度",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [900, 80]
+      "position": [
+        -200,
+        -80
+      ],
+      "id": "evaluate-assembly-readiness",
+      "name": "评估整合准备度",
+      "notesInFlow": true
     },
     {
       "parameters": {
@@ -135,64 +295,102 @@
           }
         }
       },
-      "id": "l7m8n9o0-p1q2-3456-0123-789012345678",
+      "id": "assembly-readiness-check",
       "name": "检查是否准备就绪",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1100, 80]
+      "position": [0, -80]
     },
     {
       "parameters": {
-        "url": "{{ $('环境配置').item.json.llmApiUrl }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "method": "POST",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "model",
-              "value": "{{ $('环境配置').item.json.assemblyModel }}"
-            },
-            {
-              "name": "messages",
-              "value": "=[{\"role\": \"system\", \"content\": \"你是一个专业的学术论文编辑和整合专家。你的任务是将多个已审核的章节内容整合成一篇完整、连贯的学术论文。\\n\\n整合要求：\\n1. **全局一致性**：确保各章节之间逻辑连贯，术语统一\\n2. **结构完整性**：检查论文整体结构的合理性\\n3. **过渡优化**：在章节间添加适当的过渡和连接\\n4. **格式统一**：统一引用格式、图表编号等\\n5. **语言润色**：保持全文语言风格的一致性\\n6. **质量提升**：识别并改进薄弱环节\\n\\n输出格式为JSON：\\n{\\n  \\\"globalReview\\\": {\\n    \\\"consistencyScore\\\": 评分(1-10),\\n    \\\"structureScore\\\": 结构评分(1-10),\\n    \\\"cohesionScore\\\": 连贯性评分(1-10),\\n    \\\"overallQuality\\\": 总体质量评分(1-10)\\n  },\\n  \\\"identifiedIssues\\\": [\\n    {\\n      \\\"type\\\": \\\"问题类型\\\",\\n      \\\"location\\\": \\\"位置\\\",\\n      \\\"description\\\": \\\"问题描述\\\",\\n      \\\"suggestion\\\": \\\"改进建议\\\"\\n    }\\n  ],\\n  \\\"improvementPlan\\\": [\\n    {\\n      \\\"priority\\\": \\\"优先级(high/medium/low)\\\",\\n      \\\"action\\\": \\\"改进行动\\\",\\n      \\\"target\\\": \\\"目标章节或部分\\\"\\n    }\\n  ],\\n  \\\"assemblyReady\\\": true/false,\\n  \\\"recommendedActions\\\": [\\\"建议行动1\\\", \\\"建议行动2\\\"]\\n}\"}, {\"role\": \"user\", \"content\": \"请对以下论文章节进行全局审核和整合准备：\\n\\n## 论文统计\\n**完成度：** {{ ($json.completionRate * 100).toFixed(1) }}%\\n**章节数：** {{ $json.completedChapters }}/{{ $json.expectedChapters }}\\n**小节数：** {{ $json.totalSections }}\\n**平均质量：** {{ $json.qualityStats.averageScore.toFixed(1) }}/10\\n\\n## 各章节内容\\n{{ $json.contents.map((content, index) => `### 第${content.chapter}章 ${content.section} ${content.title}\\n**质量评分：** ${content.finalQualityScore}/10\\n**字数：** ${content.wordCount}\\n**修订轮次：** ${content.revisionCycles}\\n\\n${content.content.substring(0, 500)}...\\n\\n---\\n`).join('') }}\\n\\n请进行全局一致性审核并提供整合建议。\"}]"
-            },
-            {
-              "name": "temperature",
-              "value": "0.3"
-            },
-            {
-              "name": "max_tokens",
-              "value": "2500"
-            }
-          ]
-        }
+        "content": "## global_consistency_review()\n\n使用Gemini模型进行全局一致性审核。\n- 分析各章节间的逻辑连贯性\n- 检查术语使用的一致性\n- 评估整体结构合理性\n- 识别需要改进的薄弱环节",
+        "height": 600,
+        "width": 440,
+        "color": 5
       },
-      "id": "m8n9o0p1-q2r3-4567-1234-890123456789",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        200,
+        -420
+      ],
+      "typeVersion": 1,
+      "id": "global-review-note",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"globalReview\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"consistencyScore\": {\n          \"type\": \"number\",\n          \"minimum\": 1,\n          \"maximum\": 10,\n          \"description\": \"一致性评分\"\n        },\n        \"structureScore\": {\n          \"type\": \"number\",\n          \"minimum\": 1,\n          \"maximum\": 10,\n          \"description\": \"结构评分\"\n        },\n        \"cohesionScore\": {\n          \"type\": \"number\",\n          \"minimum\": 1,\n          \"maximum\": 10,\n          \"description\": \"连贯性评分\"\n        },\n        \"overallQuality\": {\n          \"type\": \"number\",\n          \"minimum\": 1,\n          \"maximum\": 10,\n          \"description\": \"总体质量评分\"\n        }\n      },\n      \"required\": [\"consistencyScore\", \"structureScore\", \"cohesionScore\", \"overallQuality\"]\n    },\n    \"identifiedIssues\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"type\": {\n            \"type\": \"string\",\n            \"description\": \"问题类型\"\n          },\n          \"location\": {\n            \"type\": \"string\",\n            \"description\": \"问题位置\"\n          },\n          \"description\": {\n            \"type\": \"string\",\n            \"description\": \"问题描述\"\n          },\n          \"suggestion\": {\n            \"type\": \"string\",\n            \"description\": \"改进建议\"\n          }\n        },\n        \"required\": [\"type\", \"location\", \"description\", \"suggestion\"]\n      }\n    },\n    \"improvementPlan\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"priority\": {\n            \"type\": \"string\",\n            \"enum\": [\"high\", \"medium\", \"low\"],\n            \"description\": \"优先级\"\n          },\n          \"action\": {\n            \"type\": \"string\",\n            \"description\": \"改进行动\"\n          },\n          \"target\": {\n            \"type\": \"string\",\n            \"description\": \"目标章节或部分\"\n          }\n        },\n        \"required\": [\"priority\", \"action\", \"target\"]\n      }\n    },\n    \"assemblyReady\": {\n      \"type\": \"boolean\",\n      \"description\": \"是否可以开始整合\"\n    },\n    \"recommendedActions\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"建议行动列表\"\n    }\n  },\n  \"required\": [\"globalReview\", \"identifiedIssues\", \"improvementPlan\", \"assemblyReady\", \"recommendedActions\"],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        180
+      ],
+      "id": "global-review-parser",
+      "name": "Global Review Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是一个专业的学术论文编辑和整合专家。你的任务是将多个已审核的章节内容整合成一篇完整、连贯的学术论文。
+
+整合要求：
+1. **全局一致性**：确保各章节之间逻辑连贯，术语统一
+2. **结构完整性**：检查论文整体结构的合理性
+3. **过渡优化**：在章节间添加适当的过渡和连接
+4. **格式统一**：统一引用格式、图表编号等
+5. **语言润色**：保持全文语言风格的一致性
+6. **质量提升**：识别并改进薄弱环节
+
+请对以下论文章节进行全局审核和整合准备：
+
+## 论文统计
+**完成度：** {{ ($json.completionRate * 100).toFixed(1) }}%
+**章节数：** {{ $json.completedChapters }}/{{ $json.expectedChapters }}
+**小节数：** {{ $json.totalSections }}
+**平均质量：** {{ $json.qualityStats.averageScore.toFixed(1) }}/10
+
+## 各章节内容
+{{ $json.contents.map((content, index) => `### 第${content.chapter}章 ${content.section} ${content.title}
+**质量评分：** ${content.finalQualityScore}/10
+**字数：** ${content.wordCount}
+**修订轮次：** ${content.revisionCycles}
+
+${content.content.substring(0, 500)}...
+
+---
+`).join('') }}
+
+请进行全局一致性审核并提供整合建议。",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        200,
+        -60
+      ],
+      "id": "llm-global-consistency-review",
       "name": "LLM全局一致性审核",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [1300, 60]
+      "notesInFlow": true
     },
     {
       "parameters": {
-        "functionCode": "// 处理全局审核结果并生成整合策略\nfor (const item of $input.all()) {\n  try {\n    const reviewResponse = JSON.parse(item.json.choices[0].message.content);\n    const assemblyData = $('评估整合准备度').first().json;\n    \n    // 分析审核结果\n    const globalQuality = {\n      consistency: reviewResponse.globalReview.consistencyScore,\n      structure: reviewResponse.globalReview.structureScore,\n      cohesion: reviewResponse.globalReview.cohesionScore,\n      overall: reviewResponse.globalReview.overallQuality,\n      average: (reviewResponse.globalReview.consistencyScore + \n               reviewResponse.globalReview.structureScore + \n               reviewResponse.globalReview.cohesionScore + \n               reviewResponse.globalReview.overallQuality) / 4\n    };\n    \n    // 分类问题\n    const criticalIssues = reviewResponse.identifiedIssues.filter(issue => \n      issue.type.includes('一致性') || issue.type.includes('逻辑')\n    );\n    \n    const formatIssues = reviewResponse.identifiedIssues.filter(issue => \n      issue.type.includes('格式') || issue.type.includes('引用')\n    );\n    \n    const styleIssues = reviewResponse.identifiedIssues.filter(issue => \n      issue.type.includes('语言') || issue.type.includes('风格')\n    );\n    \n    // 制定整合策略\n    const assemblyStrategy = {\n      approachType: globalQuality.average >= 8 ? 'direct_assembly' : \n                   globalQuality.average >= 6 ? 'moderate_revision' : 'comprehensive_revision',\n      \n      priorityActions: reviewResponse.improvementPlan\n        .filter(plan => plan.priority === 'high')\n        .map(plan => plan.action),\n      \n      processingSteps: [\n        'content_merging',\n        criticalIssues.length > 0 ? 'critical_issue_resolution' : null,\n        'format_standardization', \n        'style_harmonization',\n        'final_review'\n      ].filter(Boolean),\n      \n      estimatedTime: globalQuality.average >= 8 ? '10-15分钟' : \n                    globalQuality.average >= 6 ? '20-30分钟' : '40-60分钟'\n    };\n    \n    const globalReviewResult = {\n      timestamp: new Date().toISOString(),\n      qualityAssessment: globalQuality,\n      issueAnalysis: {\n        totalIssues: reviewResponse.identifiedIssues.length,\n        criticalIssues: criticalIssues.length,\n        formatIssues: formatIssues.length,\n        styleIssues: styleIssues.length,\n        issueDetails: reviewResponse.identifiedIssues\n      },\n      assemblyStrategy: assemblyStrategy,\n      assemblyReady: reviewResponse.assemblyReady && globalQuality.average >= 6,\n      recommendedActions: reviewResponse.recommendedActions,\n      contents: assemblyData.contents,\n      processingStage: 'global_review_completed',\n      nextStage: reviewResponse.assemblyReady ? 'paper_assembly' : 'issue_resolution'\n    };\n    \n    item.json = globalReviewResult;\n    \n  } catch (error) {\n    item.json = {\n      error: '全局审核结果处理失败',\n      errorMessage: error.message,\n      originalResponse: item.json,\n      processingStage: 'global_review_failed'\n    };\n  }\n}\n\nreturn $input.all();"
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 处理全局审核结果并生成整合策略\nfor (const item of $input.all()) {\n  try {\n    const reviewResponse = item.json;\n    const assemblyData = $('评估整合准备度').first().json;\n    \n    // 分析审核结果\n    const globalQuality = {\n      consistency: reviewResponse.globalReview.consistencyScore,\n      structure: reviewResponse.globalReview.structureScore,\n      cohesion: reviewResponse.globalReview.cohesionScore,\n      overall: reviewResponse.globalReview.overallQuality,\n      average: (reviewResponse.globalReview.consistencyScore + \n               reviewResponse.globalReview.structureScore + \n               reviewResponse.globalReview.cohesionScore + \n               reviewResponse.globalReview.overallQuality) / 4\n    };\n    \n    // 分类问题\n    const criticalIssues = reviewResponse.identifiedIssues.filter(issue => \n      issue.type.includes('一致性') || issue.type.includes('逻辑')\n    );\n    \n    const formatIssues = reviewResponse.identifiedIssues.filter(issue => \n      issue.type.includes('格式') || issue.type.includes('引用')\n    );\n    \n    const styleIssues = reviewResponse.identifiedIssues.filter(issue => \n      issue.type.includes('语言') || issue.type.includes('风格')\n    );\n    \n    // 制定整合策略\n    const assemblyStrategy = {\n      approachType: globalQuality.average >= 8 ? 'direct_assembly' : \n                   globalQuality.average >= 6 ? 'moderate_revision' : 'comprehensive_revision',\n      \n      priorityActions: reviewResponse.improvementPlan\n        .filter(plan => plan.priority === 'high')\n        .map(plan => plan.action),\n      \n      processingSteps: [\n        'content_merging',\n        criticalIssues.length > 0 ? 'critical_issue_resolution' : null,\n        'format_standardization', \n        'style_harmonization',\n        'final_review'\n      ].filter(Boolean),\n      \n      estimatedTime: globalQuality.average >= 8 ? '10-15分钟' : \n                    globalQuality.average >= 6 ? '20-30分钟' : '40-60分钟'\n    };\n    \n    const globalReviewResult = {\n      timestamp: new Date().toISOString(),\n      qualityAssessment: globalQuality,\n      issueAnalysis: {\n        totalIssues: reviewResponse.identifiedIssues.length,\n        criticalIssues: criticalIssues.length,\n        formatIssues: formatIssues.length,\n        styleIssues: styleIssues.length,\n        issueDetails: reviewResponse.identifiedIssues\n      },\n      assemblyStrategy: assemblyStrategy,\n      assemblyReady: reviewResponse.assemblyReady && globalQuality.average >= 6,\n      recommendedActions: reviewResponse.recommendedActions,\n      contents: assemblyData.contents,\n      processingStage: 'global_review_completed',\n      nextStage: reviewResponse.assemblyReady ? 'paper_assembly' : 'issue_resolution'\n    };\n    \n    item.json = globalReviewResult;\n    \n  } catch (error) {\n    item.json = {\n      error: '全局审核结果处理失败',\n      errorMessage: error.message,\n      originalResponse: item.json,\n      processingStage: 'global_review_failed'\n    };\n  }\n}\n\nreturn $input.all();"
       },
-      "id": "n9o0p1q2-r3s4-5678-2345-901234567890",
-      "name": "全局审核结果处理",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1500, 60]
+      "position": [
+        600,
+        -60
+      ],
+      "id": "global-review-result-processor",
+      "name": "全局审核结果处理",
+      "notesInFlow": true
     },
     {
       "parameters": {
@@ -205,114 +403,141 @@
           }
         }
       },
-      "id": "o0p1q2r3-s4t5-6789-3456-012345678901",
-      "name": "检查是否可以整合",
+      "id": "assembly-ready-check",
+      "name": "检查整合就绪状态",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1700, 60]
+      "position": [800, -60]
     },
     {
       "parameters": {
-        "functionCode": "// 开始论文整合过程\nfor (const item of $input.all()) {\n  const reviewResult = item.json;\n  const contents = reviewResult.contents;\n  \n  // 构建完整论文结构\n  let fullPaper = '';\n  \n  // 1. 标题和摘要（如果有大纲信息）\n  fullPaper += `# 论文标题\\n\\n`;\n  fullPaper += `## 摘要\\n\\n[此处需要根据大纲信息生成摘要]\\n\\n`;\n  fullPaper += `## 关键词\\n\\n[关键词列表]\\n\\n`;\n  \n  // 2. 目录\n  fullPaper += `## 目录\\n\\n`;\n  const chapters = [...new Set(contents.map(c => c.chapter))].sort((a, b) => a - b);\n  chapters.forEach(chapterNum => {\n    const chapterContents = contents.filter(c => c.chapter === chapterNum);\n    if (chapterContents.length > 0) {\n      fullPaper += `${chapterNum}. 第${chapterNum}章\\n`;\n      chapterContents.forEach(content => {\n        fullPaper += `  ${content.section} ${content.title}\\n`;\n      });\n    }\n  });\n  fullPaper += `\\n\\n`;\n  \n  // 3. 正文内容\n  let currentChapter = 0;\n  contents.forEach(content => {\n    if (content.chapter !== currentChapter) {\n      currentChapter = content.chapter;\n      fullPaper += `\\n\\n# 第${currentChapter}章\\n\\n`;\n    }\n    \n    fullPaper += `## ${content.section} ${content.title}\\n\\n`;\n    fullPaper += content.content;\n    fullPaper += `\\n\\n`;\n  });\n  \n  // 4. 参考文献\n  fullPaper += `\\n\\n# 参考文献\\n\\n`;\n  fullPaper += `[此处将汇总所有章节的参考文献]\\n\\n`;\n  \n  // 5. 附录（如需要）\n  fullPaper += `\\n\\n# 附录\\n\\n`;\n  fullPaper += `[相关附录内容]\\n\\n`;\n  \n  // 统计信息\n  const totalWords = contents.reduce((sum, c) => sum + c.wordCount, 0);\n  const averageQuality = contents.reduce((sum, c) => sum + c.finalQualityScore, 0) / contents.length;\n  \n  const assembledPaper = {\n    title: '自动生成的学术论文',\n    content: fullPaper,\n    metadata: {\n      totalWords: totalWords,\n      totalChapters: chapters.length,\n      totalSections: contents.length,\n      averageQuality: averageQuality,\n      completionDate: new Date().toISOString(),\n      assemblyStrategy: reviewResult.assemblyStrategy.approachType\n    },\n    qualityMetrics: {\n      globalConsistency: reviewResult.qualityAssessment.consistency,\n      structuralIntegrity: reviewResult.qualityAssessment.structure,\n      contentCohesion: reviewResult.qualityAssessment.cohesion,\n      overallQuality: reviewResult.qualityAssessment.overall\n    },\n    processingLog: {\n      assembledAt: new Date().toISOString(),\n      processingSteps: reviewResult.assemblyStrategy.processingSteps,\n      resolvedIssues: reviewResult.issueAnalysis.totalIssues,\n      finalStatus: 'assembly_completed'\n    },\n    processingStage: 'paper_assembled',\n    nextStage: 'format_output'\n  };\n  \n  item.json = assembledPaper;\n}\n\nreturn $input.all();"
+        "content": "## paper_assembly()\n\n执行论文整合流程。\n- 合并所有章节内容\n- 添加章节间过渡\n- 统一格式和引用\n- 生成最终论文",
+        "height": 400,
+        "width": 440,
+        "color": 5
       },
-      "id": "p1q2r3s4-t5u6-7890-4567-123456789012",
-      "name": "执行论文整合",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1000,
+        -420
+      ],
+      "typeVersion": 1,
+      "id": "paper-assembly-note",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"assembledPaper\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"title\": {\n          \"type\": \"string\",\n          \"description\": \"论文标题\"\n        },\n        \"abstract\": {\n          \"type\": \"string\",\n          \"description\": \"摘要\"\n        },\n        \"keywords\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          },\n          \"description\": \"关键词\"\n        },\n        \"chapters\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"chapterNumber\": {\n                \"type\": \"number\"\n              },\n              \"title\": {\n                \"type\": \"string\"\n              },\n              \"content\": {\n                \"type\": \"string\"\n              },\n              \"wordCount\": {\n                \"type\": \"number\"\n              }\n            }\n          }\n        },\n        \"totalWordCount\": {\n          \"type\": \"number\"\n        },\n        \"references\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        }\n      },\n      \"required\": [\"title\", \"chapters\", \"totalWordCount\"]\n    },\n    \"assemblyMetadata\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"assemblyTime\": {\n          \"type\": \"string\"\n        },\n        \"qualityScore\": {\n          \"type\": \"number\"\n        },\n        \"revisionNotes\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        }\n      }\n    }\n  },\n  \"required\": [\"assembledPaper\", \"assemblyMetadata\"],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        180
+      ],
+      "id": "paper-assembly-parser",
+      "name": "Paper Assembly Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是一个专业的学术论文整合专家。请将提供的章节内容整合成一篇完整、连贯的学术论文。
+
+整合要求：
+1. **内容合并**：将所有章节内容按逻辑顺序合并
+2. **过渡优化**：在章节间添加自然的过渡段落
+3. **格式统一**：统一引用格式、术语使用
+4. **结构优化**：确保整体结构清晰合理
+5. **语言润色**：保持全文语言风格一致
+
+请整合以下章节内容：
+
+{{ $json.contents.map((content, index) => `## 第${content.chapter}章 ${content.section} ${content.title}
+${content.content}
+
+---
+`).join('') }}
+
+请生成完整的整合论文，包括标题、章节内容、参考文献等。",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        1000,
+        -60
+      ],
+      "id": "llm-paper-assembly",
+      "name": "LLM论文整合",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 处理论文整合结果\nfor (const item of $input.all()) {\n  try {\n    const assemblyResult = item.json;\n    const reviewData = $('全局审核结果处理').first().json;\n    \n    // 构建最终论文数据\n    const finalPaper = {\n      paperId: $('Assembly Configs').item.json.assembly_id,\n      sessionId: $('Assembly Request Parser').item.json.sessionId,\n      title: assemblyResult.assembledPaper.title,\n      abstract: assemblyResult.assembledPaper.abstract || '',\n      keywords: assemblyResult.assembledPaper.keywords || [],\n      chapters: assemblyResult.assembledPaper.chapters,\n      totalWordCount: assemblyResult.assembledPaper.totalWordCount,\n      references: assemblyResult.assembledPaper.references || [],\n      qualityScore: assemblyResult.assemblyMetadata.qualityScore,\n      assemblyTime: assemblyResult.assemblyMetadata.assemblyTime,\n      revisionNotes: assemblyResult.assemblyMetadata.revisionNotes || [],\n      globalReviewData: reviewData,\n      completedAt: new Date().toISOString(),\n      status: 'completed'\n    };\n    \n    // 生成论文摘要\n    const paperSummary = {\n      totalChapters: finalPaper.chapters.length,\n      averageChapterLength: finalPaper.totalWordCount / finalPaper.chapters.length,\n      qualityAssessment: reviewData.qualityAssessment,\n      assemblyStrategy: reviewData.assemblyStrategy,\n      completionStatus: 'success'\n    };\n    \n    item.json = {\n      finalPaper: finalPaper,\n      paperSummary: paperSummary,\n      processingStage: 'assembly_completed',\n      success: true\n    };\n    \n  } catch (error) {\n    item.json = {\n      error: '论文整合处理失败',\n      errorMessage: error.message,\n      originalResponse: item.json,\n      processingStage: 'assembly_failed'\n    };\n  }\n}\n\nreturn $input.all();"
+      },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1900, 40]
+      "position": [
+        1400,
+        -60
+      ],
+      "id": "paper-assembly-result-processor",
+      "name": "论文整合结果处理",
+      "notesInFlow": true
     },
     {
       "parameters": {
-        "url": "{{ $('环境配置').item.json.outputFormatUrl }}",
-        "method": "POST",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "content",
-              "value": "={{ $json.content }}"
-            },
-            {
-              "name": "metadata",
-              "value": "={{ $json.metadata }}"
-            },
-            {
-              "name": "formats",
-              "value": "['markdown', 'pdf', 'docx']"
-            }
-          ]
-        }
+        "content": "## final_output()\n\n生成最终输出结果。\n- 返回整合完成的论文\n- 提供质量评估报告\n- 包含处理状态信息",
+        "height": 300,
+        "width": 440,
+        "color": 5
       },
-      "id": "q2r3s4t5-u6v7-8901-5678-234567890123",
-      "name": "生成多格式输出",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [2100, 40]
-    },
-    {
-      "parameters": {
-        "message": "⏳ 等待更多内容完成\\n\\n**当前进度：** {{ ($json.completionRate * 100).toFixed(1) }}%\\n**已完成章节：** {{ $json.completedChapters }}/{{ $json.expectedChapters }}\\n**已完成小节：** {{ $json.totalSections }}个\\n**平均质量：** {{ $json.qualityStats.averageScore.toFixed(1) }}/10\\n\\n{{ $json.statusMessage }}",
-        "additionalFields": {
-          "title": "论文整合状态"
-        }
-      },
-      "id": "r3s4t5u6-v7w8-9012-6789-345678901234",
-      "name": "等待状态通知",
-      "type": "n8n-nodes-base.webhook",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1600,
+        -420
+      ],
       "typeVersion": 1,
-      "position": [1100, 200]
+      "id": "final-output-note",
+      "name": "Sticky Note6"
     },
     {
       "parameters": {
-        "url": "{{ $('环境配置').item.json.storageApiUrl }}",
-        "method": "GET",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "action",
-              "value": "get_completion_status"
-            }
-          ]
-        }
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 生成最终输出\nfor (const item of $input.all()) {\n  const result = {\n    success: true,\n    message: '论文整合完成',\n    data: {\n      paper: item.json.finalPaper,\n      summary: item.json.paperSummary\n    },\n    timestamp: new Date().toISOString(),\n    processingTime: new Date() - new Date($('Assembly Request Parser').item.json.timestamp || Date.now())\n  };\n  \n  item.json = result;\n}\n\nreturn $input.all();"
       },
-      "id": "s4t5u6v7-w8x9-0123-7890-456789012345",
-      "name": "获取完成状态",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [500, 200]
-    },
-    {
-      "parameters": {
-        "message": "⚠️ 全局质量检查未通过\\n\\n**总体评分：** {{ $json.qualityAssessment.overall }}/10\\n**发现问题：** {{ $json.issueAnalysis.totalIssues }}个\\n**关键问题：** {{ $json.issueAnalysis.criticalIssues }}个\\n\\n**建议行动：**\\n{{ $json.recommendedActions.map((action, index) => `${index + 1}. ${action}`).join('\\n') }}\\n\\n需要解决问题后重新整合。",
-        "additionalFields": {
-          "title": "整合质量检查失败",
-          "color": "#FF9500"
-        }
-      },
-      "id": "t5u6v7w8-x9y0-1234-8901-567890123456",
-      "name": "质量问题通知",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [1700, 200]
-    },
-    {
-      "parameters": {
-        "message": "🎉 论文整合完成！\\n\\n**📊 论文统计**\\n- **总字数：** {{ $json.metadata.totalWords }} 字\\n- **章节数：** {{ $json.metadata.totalChapters }} 章\\n- **小节数：** {{ $json.metadata.totalSections }} 个\\n- **平均质量：** {{ $json.metadata.averageQuality.toFixed(1) }}/10\\n\\n**🎯 质量指标**\\n- **全局一致性：** {{ $json.qualityMetrics.globalConsistency }}/10\\n- **结构完整性：** {{ $json.qualityMetrics.structuralIntegrity }}/10\\n- **内容连贯性：** {{ $json.qualityMetrics.contentCohesion }}/10\\n- **总体质量：** {{ $json.qualityMetrics.overallQuality }}/10\\n\\n**✅ 已生成格式：** Markdown, PDF, DOCX\\n**📅 完成时间：** {{ $json.metadata.completionDate }}",
-        "additionalFields": {
-          "title": "🎓 论文自动生成完成",
-          "color": "#00C851"
-        }
-      },
-      "id": "u6v7w8x9-y0z1-2345-9012-678901234567",
-      "name": "完成通知",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [2300, 40]
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        -60
+      ],
+      "id": "final-output-generator",
+      "name": "最终输出生成器",
+      "notesInFlow": true
     }
   ],
   "connections": {
     "最终整合触发器": {
+      "main": [
+        [
+          {
+            "node": "Assembly Request Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assembly Configs": {
+      "main": [
+        []
+      ]
+    },
+    "Assembly Request Parser": {
       "main": [
         [
           {
@@ -334,7 +559,7 @@
         ],
         [
           {
-            "node": "获取完成状态",
+            "node": "检查内容完整性",
             "type": "main",
             "index": 0
           }
@@ -342,6 +567,17 @@
       ]
     },
     "存储已批准内容": {
+      "main": [
+        [
+          {
+            "node": "内容存储API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "内容存储API": {
       "main": [
         [
           {
@@ -385,7 +621,7 @@
         ],
         [
           {
-            "node": "等待状态通知",
+            "node": "最终输出生成器",
             "type": "main",
             "index": 0
           }
@@ -407,58 +643,47 @@
       "main": [
         [
           {
-            "node": "检查是否可以整合",
+            "node": "检查整合就绪状态",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "检查是否可以整合": {
+    "检查整合就绪状态": {
       "main": [
         [
           {
-            "node": "执行论文整合",
+            "node": "LLM论文整合",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "质量问题通知",
+            "node": "最终输出生成器",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "执行论文整合": {
+    "LLM论文整合": {
       "main": [
         [
           {
-            "node": "生成多格式输出",
+            "node": "论文整合结果处理",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "生成多格式输出": {
+    "论文整合结果处理": {
       "main": [
         [
           {
-            "node": "完成通知",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "获取完成状态": {
-      "main": [
-        [
-          {
-            "node": "评估整合准备度",
+            "node": "最终输出生成器",
             "type": "main",
             "index": 0
           }
@@ -466,15 +691,20 @@
       ]
     }
   },
-  "active": false,
+  "pinData": {},
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "final-assembly-v1.0",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "description": "论文最终整合工作流：收集已批准的章节内容，进行全局一致性检查，整合成完整论文并生成多种格式输出。支持质量控制和进度监控。",
-    "category": "document-processing",
-    "tags": ["论文整合", "全局审核", "一致性检查", "多格式输出", "质量控制"]
-  }
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "assembly-workflow",
+      "name": "论文整合"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1.0.0"
 }

@@ -1,6 +1,22 @@
 {
-  "name": "写作Agent工作流 - 分任务写作处理",
+  "name": "AI写作Agent工作流 - 分任务写作处理 (基于Gemini-DR格式重构)",
   "nodes": [
+    {
+      "parameters": {
+        "content": "### writing_agent_trigger()\n- 接收写作任务请求\n- 支持大纲写作和内容修订\n- 使用webhook触发器",
+        "height": 400,
+        "width": 440,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1580,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "writing-trigger-note",
+      "name": "Sticky Note"
+    },
     {
       "parameters": {
         "httpMethod": "POST",
@@ -11,65 +27,297 @@
       "name": "写作任务触发器",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [100, 100],
+      "position": [-1580, -60],
       "webhookId": "writing-agent"
     },
     {
       "parameters": {
-        "values": [
-          {
-            "name": "llmApiUrl",
-            "value": "https://api.openai.com/v1/chat/completions"
-          },
-          {
-            "name": "llmModel",
-            "value": "gpt-4"
-          },
-          {
-            "name": "maxConcurrentTasks",
-            "value": "3"
-          },
-          {
-            "name": "reviewWorkflowUrl",
-            "value": "http://localhost:5678/webhook/quality-review"
-          },
-          {
-            "name": "taskStatusUrl",
-            "value": "http://localhost:3000/api/task-status"
-          }
-        ]
+        "assignments": {
+          "assignments": [
+            {
+              "id": "config-1",
+              "name": "max_concurrent_tasks",
+              "value": 3,
+              "type": "number"
+            },
+            {
+              "id": "config-2",
+              "name": "max_writing_time",
+              "value": 3600,
+              "type": "number"
+            },
+            {
+              "id": "config-3",
+              "name": "current_date",
+              "value": "={{$now.format('yyyy-LL-dd')}}",
+              "type": "string"
+            },
+            {
+              "id": "config-4",
+              "name": "writing_id",
+              "value": "=writing:writing-agent:{{ $json.sessionId }}:",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
       },
-      "id": "x2y3z4a5-b6c7-8901-bcde-f23456789012",
-      "name": "环境配置",
       "type": "n8n-nodes-base.set",
-      "typeVersion": 2,
-      "position": [100, 300]
+      "typeVersion": 3.4,
+      "position": [
+        -1880,
+        -60
+      ],
+      "id": "writing-configs",
+      "name": "Writing Configs"
     },
     {
       "parameters": {
-        "functionCode": "// 初始化任务队列管理\nfor (const item of $input.all()) {\n  const outlineData = item.json.outlineData;\n  const writingTasks = outlineData.writingTasks || [];\n  \n  // 按优先级和依赖关系排序任务\n  const sortedTasks = writingTasks.sort((a, b) => {\n    // 优先级排序：high > medium > low\n    const priorityOrder = { 'high': 3, 'medium': 2, 'low': 1 };\n    const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];\n    if (priorityDiff !== 0) return priorityDiff;\n    \n    // 章节顺序排序\n    return a.chapter - b.chapter;\n  });\n  \n  // 分批处理任务（避免同时启动过多任务）\n  const maxConcurrent = parseInt($('环境配置').item.json.maxConcurrentTasks);\n  const taskBatches = [];\n  \n  for (let i = 0; i < sortedTasks.length; i += maxConcurrent) {\n    const batch = sortedTasks.slice(i, i + maxConcurrent);\n    taskBatches.push({\n      batchId: Math.floor(i / maxConcurrent) + 1,\n      tasks: batch,\n      status: 'pending'\n    });\n  }\n  \n  item.json = {\n    outlineData: outlineData,\n    taskManagement: {\n      totalTasks: writingTasks.length,\n      totalBatches: taskBatches.length,\n      currentBatch: 1,\n      completedTasks: 0,\n      failedTasks: 0\n    },\n    taskBatches: taskBatches,\n    processingStage: 'task_initialization',\n    startedAt: new Date().toISOString()\n  };\n}\n\nreturn $input.all();"
+        "content": "### Writing Configs\n- `max_concurrent_tasks` (*最大并发任务数*): 3\n- `max_writing_time` (*最大写作时间*): 3600秒\n\n### variables:\n- `current_date`\n- `writing_id`\n\n",
+        "height": 300,
+        "width": 340,
+        "color": 4
       },
-      "id": "y3z4a5b6-c7d8-9012-cdef-345678901234",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1980,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "writing-configs-note",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1540,
+        200
+      ],
+      "id": "writing-gemini-model",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "sUx2BOKL53mwfOJl",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"outlineData\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"outline\": {\n          \"type\": \"object\"\n        },\n        \"writingTasks\": {\n          \"type\": \"array\"\n        },\n        \"guidelines\": {\n          \"type\": \"object\"\n        }\n      }\n    },\n    \"revisionRequest\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"contentInfo\": {\n          \"type\": \"object\"\n        },\n        \"revisionStrategy\": {\n          \"type\": \"object\"\n        },\n        \"issuesAnalysis\": {\n          \"type\": \"object\"\n        }\n      }\n    },\n    \"sessionId\": {\n      \"type\": \"string\",\n      \"description\": \"会话ID\"\n    }\n  },\n  \"required\": [\"sessionId\"],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -1260,
+        180
+      ],
+      "id": "writing-input-parser",
+      "name": "Writing Input Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是一个专业的写作任务分析系统。请分析用户请求并确定任务类型。
+
+任务类型说明：
+1. **outline_writing**：基于大纲的章节写作
+2. **content_revision**：内容修订和优化
+3. **task_management**：任务队列管理
+
+请根据输入确定正确的任务类型和相关信息。
+
+输入内容：{{ $('写作任务触发器').item.json }}",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -1480,
+        -60
+      ],
+      "id": "writing-request-parser",
+      "name": "Writing Request Parser",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "content": "## initialize_task_queue()\n\n初始化任务队列管理。\n- 按优先级和依赖关系排序任务\n- 分批处理任务避免过载\n- 设置任务状态和进度跟踪\n- 准备任务执行环境",
+        "height": 500,
+        "width": 440,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1000,
+        -420
+      ],
+      "typeVersion": 1,
+      "id": "task-queue-note",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 初始化任务队列管理\nfor (const item of $input.all()) {\n  const outlineData = item.json.outlineData;\n  const writingTasks = outlineData.writingTasks || [];\n  \n  // 按优先级和依赖关系排序任务\n  const sortedTasks = writingTasks.sort((a, b) => {\n    // 优先级排序：high > medium > low\n    const priorityOrder = { 'high': 3, 'medium': 2, 'low': 1 };\n    const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];\n    if (priorityDiff !== 0) return priorityDiff;\n    \n    // 章节顺序排序\n    return a.chapter - b.chapter;\n  });\n  \n  // 分批处理任务（避免同时启动过多任务）\n  const maxConcurrent = parseInt($('Writing Configs').item.json.max_concurrent_tasks);\n  const taskBatches = [];\n  \n  for (let i = 0; i < sortedTasks.length; i += maxConcurrent) {\n    const batch = sortedTasks.slice(i, i + maxConcurrent);\n    taskBatches.push({\n      batchId: Math.floor(i / maxConcurrent) + 1,\n      tasks: batch,\n      status: 'pending'\n    });\n  }\n  \n  item.json = {\n    outlineData: outlineData,\n    taskManagement: {\n      totalTasks: writingTasks.length,\n      totalBatches: taskBatches.length,\n      currentBatch: 1,\n      completedTasks: 0,\n      failedTasks: 0\n    },\n    taskBatches: taskBatches,\n    processingStage: 'task_initialization',\n    startedAt: new Date().toISOString()\n  };\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        -80
+      ],
+      "id": "task-queue-initialization",
       "name": "任务队列初始化",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [300, 100]
+      "notesInFlow": true
     },
     {
       "parameters": {
-        "functionCode": "// 获取当前批次的任务\nconst allData = $input.all();\nconst result = [];\n\nfor (const item of allData) {\n  const taskBatches = item.json.taskBatches;\n  const currentBatchIndex = item.json.taskManagement.currentBatch - 1;\n  \n  if (currentBatchIndex < taskBatches.length) {\n    const currentBatch = taskBatches[currentBatchIndex];\n    \n    // 为当前批次的每个任务创建独立的数据项\n    currentBatch.tasks.forEach((task, taskIndex) => {\n      result.push({\n        json: {\n          originalData: item.json,\n          currentTask: task,\n          batchInfo: {\n            batchId: currentBatch.batchId,\n            taskIndex: taskIndex,\n            totalInBatch: currentBatch.tasks.length\n          },\n          outlineData: item.json.outlineData\n        }\n      });\n    });\n  }\n}\n\nreturn result;"
+        "content": "## distribute_current_batch()\n\n分发当前批次的任务。\n- 获取当前批次的所有任务\n- 为每个任务创建独立的数据项\n- 准备任务执行上下文\n- 设置任务标识符",
+        "height": 400,
+        "width": 440,
+        "color": 5
       },
-      "id": "z4a5b6c7-d8e9-0123-def0-456789012345",
-      "name": "分发当前批次任务",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [500, 100]
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -600,
+        -420
+      ],
+      "typeVersion": 1,
+      "id": "batch-distribution-note",
+      "name": "Sticky Note3"
     },
     {
       "parameters": {
-        "url": "{{ $('环境配置').item.json.llmApiUrl }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 获取当前批次的任务\nconst allData = $input.all();\nconst result = [];\n\nfor (const item of allData) {\n  const taskBatches = item.json.taskBatches;\n  const currentBatchIndex = item.json.taskManagement.currentBatch - 1;\n  \n  if (currentBatchIndex < taskBatches.length) {\n    const currentBatch = taskBatches[currentBatchIndex];\n    \n    // 为当前批次的每个任务创建独立的数据项\n    currentBatch.tasks.forEach((task, taskIndex) => {\n      result.push({\n        json: {\n          originalData: item.json,\n          currentTask: task,\n          batchInfo: {\n            batchId: currentBatch.batchId,\n            taskIndex: taskIndex,\n            totalInBatch: currentBatch.tasks.length\n          },\n          outlineData: item.json.outlineData\n        }\n      });\n    });\n  }\n}\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        -80
+      ],
+      "id": "distribute-current-batch-tasks",
+      "name": "分发当前批次任务",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "content": "## generate_chapter_content()\n\n使用Gemini模型生成章节内容。\n- 基于任务要求和上下文\n- 生成符合学术规范的内容\n- 确保逻辑清晰和论证充分\n- 保持指定的字数要求",
+        "height": 500,
+        "width": 440,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -400,
+        -420
+      ],
+      "typeVersion": 1,
+      "id": "content-generation-note",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"content\": {\n      \"type\": \"string\",\n      \"description\": \"生成的章节内容\"\n    },\n    \"metadata\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"actualWordCount\": {\n          \"type\": \"number\",\n          \"description\": \"实际字数\"\n        },\n        \"targetWordCount\": {\n          \"type\": \"number\",\n          \"description\": \"目标字数\"\n        },\n        \"wordCountRatio\": {\n          \"type\": \"number\",\n          \"description\": \"字数比例\"\n        },\n        \"sections\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"title\": {\n                \"type\": \"string\"\n              },\n              \"content\": {\n                \"type\": \"string\"\n              },\n              \"wordCount\": {\n                \"type\": \"number\"\n              }\n            }\n          }\n        }\n      }\n    },\n    \"qualityCheck\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"score\": {\n          \"type\": \"number\",\n          \"minimum\": 1,\n          \"maximum\": 10,\n          \"description\": \"质量评分\"\n        },\n        \"issues\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        },\n        \"strengths\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        }\n      }\n    }\n  },\n  \"required\": [\"content\", \"metadata\", \"qualityCheck\"],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -200,
+        180
+      ],
+      "id": "content-generation-parser",
+      "name": "Content Generation Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是一个专业的学术写作专家。根据提供的论文大纲和具体章节要求，撰写高质量的学术文章内容。
+
+写作要求：
+1. 严格按照提供的内容要求和字数限制
+2. 保持学术写作的规范性和专业性
+3. 确保逻辑清晰、论证充分
+4. 使用恰当的学术语言和表达方式
+5. 注意与前后章节的逻辑连贯性
+
+请根据以下要求撰写论文章节内容：
+
+## 论文信息
+**论文标题：** {{ $json.outlineData.outline.title }}
+**写作风格：** {{ $json.outlineData.guidelines.style }}
+**学术水平：** {{ $json.outlineData.guidelines.academicLevel }}
+
+## 当前任务
+**章节：** 第{{ $json.currentTask.chapter }}章
+**小节：** {{ $json.currentTask.section }} {{ $json.currentTask.title }}
+**内容要求：** {{ $json.currentTask.requirements.content }}
+**目标字数：** {{ $json.currentTask.requirements.wordCount }}字
+**本章目标：** {{ $json.currentTask.requirements.objective }}
+
+## 上下文信息
+**本章要点：**
+{{ $json.currentTask.requirements.context ? $json.currentTask.requirements.context.map((point, index) => `${index + 1}. ${point}`).join('
+') : '无特定要点' }}
+
+请撰写符合要求的章节内容。",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -400,
+        -60
+      ],
+      "id": "llm-chapter-content-generation",
+      "name": "LLM章节内容生成",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 处理内容生成结果\nfor (const item of $input.all()) {\n  try {\n    const contentResult = item.json;\n    const taskInfo = $('分发当前批次任务').first().json;\n    \n    // 验证生成结果\n    const validationResult = validateContent(contentResult);\n    \n    if (!validationResult.isValid) {\n      item.json = {\n        error: '内容验证失败',\n        errorMessage: validationResult.errorMessage,\n        processingStage: 'validation_failed'\n      };\n      continue;\n    }\n    \n    // 构建写作结果\n    const writingResult = {\n      taskId: `task-${taskInfo.currentTask.chapter}-${taskInfo.currentTask.section}`,\n      chapter: taskInfo.currentTask.chapter,\n      section: taskInfo.currentTask.section,\n      title: taskInfo.currentTask.title,\n      content: contentResult.content,\n      metadata: {\n        actualWordCount: contentResult.metadata.actualWordCount,\n        targetWordCount: contentResult.metadata.targetWordCount,\n        wordCountRatio: contentResult.metadata.wordCountRatio,\n        sections: contentResult.metadata.sections || [],\n        generatedAt: new Date().toISOString()\n      },\n      qualityCheck: {\n        score: contentResult.qualityCheck.score,\n        issues: contentResult.qualityCheck.issues || [],\n        strengths: contentResult.qualityCheck.strengths || []\n      },\n      taskInfo: {\n        batchId: taskInfo.batchInfo.batchId,\n        taskIndex: taskInfo.batchInfo.taskIndex,\n        priority: taskInfo.currentTask.priority,\n        requirements: taskInfo.currentTask.requirements\n      },\n      processingStage: 'content_generated',\n      status: 'completed'\n    };\n    \n    item.json = {\n      writingResult: writingResult,\n      validationResult: validationResult,\n      processingStage: 'content_processed',\n      success: true\n    };\n    \n  } catch (error) {\n    item.json = {\n      error: '内容处理失败',\n      errorMessage: error.message,\n      originalResponse: item.json,\n      processingStage: 'processing_failed'\n    };\n  }\n}\n\nfunction validateContent(content) {\n  // 检查必需字段\n  if (!content.content || content.content.trim().length < 100) {\n    return {\n      isValid: false,\n      errorMessage: '内容长度不足，至少需要100字符'\n    };\n  }\n  \n  if (!content.metadata || !content.metadata.actualWordCount) {\n    return {\n      isValid: false,\n      errorMessage: '缺少字数统计信息'\n    };\n  }\n  \n  if (!content.qualityCheck || !content.qualityCheck.score) {\n    return {\n      isValid: false,\n      errorMessage: '缺少质量检查信息'\n    };\n  }\n  \n  return {\n    isValid: true,\n    errorMessage: null\n  };\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        -60
+      ],
+      "id": "content-generation-result-processor",
+      "name": "内容生成结果处理",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "content": "## trigger_quality_review()\n\n触发质量审核工作流。\n- 将生成的内容发送给质量审核系统\n- 启动内容质量检查流程\n- 传递写作结果和上下文信息",
+        "height": 400,
+        "width": 440,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        -420
+      ],
+      "typeVersion": 1,
+      "id": "quality-review-trigger-note",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5678/webhook/quality-review",
         "method": "POST",
         "sendHeaders": true,
         "headerParameters": {
@@ -84,204 +332,110 @@
         "bodyParameters": {
           "parameters": [
             {
-              "name": "model",
-              "value": "{{ $('环境配置').item.json.llmModel }}"
-            },
-            {
-              "name": "messages",
-              "value": "=[{\"role\": \"system\", \"content\": \"你是一个专业的学术写作专家。根据提供的论文大纲和具体章节要求，撰写高质量的学术文章内容。\\n\\n写作要求：\\n1. 严格按照提供的内容要求和字数限制\\n2. 保持学术写作的规范性和专业性\\n3. 确保逻辑清晰、论证充分\\n4. 使用恰当的学术语言和表达方式\\n5. 注意与前后章节的逻辑连贯性\\n\\n输出格式：\\n- 直接输出章节内容，无需额外格式\\n- 包含必要的小标题和段落结构\\n- 在需要引用的地方用[引用]标记\\n- 保持指定的字数范围\"}, {\"role\": \"user\", \"content\": \"请根据以下要求撰写论文章节内容：\\n\\n## 论文信息\\n**论文标题：** {{ $json.outlineData.outline.title }}\\n**写作风格：** {{ $json.outlineData.guidelines.style }}\\n**学术水平：** {{ $json.outlineData.guidelines.academicLevel }}\\n\\n## 当前任务\\n**章节：** 第{{ $json.currentTask.chapter }}章\\n**小节：** {{ $json.currentTask.section }} {{ $json.currentTask.title }}\\n**内容要求：** {{ $json.currentTask.requirements.content }}\\n**目标字数：** {{ $json.currentTask.requirements.wordCount }}字\\n**本章目标：** {{ $json.currentTask.requirements.objective }}\\n\\n## 上下文信息\\n**本章要点：**\\n{{ $json.currentTask.requirements.context ? $json.currentTask.requirements.context.map((point, index) => `${index + 1}. ${point}`).join('\\n') : '无特定要点' }}\\n\\n请撰写符合要求的章节内容。\"}]"
-            },
-            {
-              "name": "temperature",
-              "value": "0.4"
-            },
-            {
-              "name": "max_tokens",
-              "value": "2500"
-            }
-          ]
-        }
-      },
-      "id": "a5b6c7d8-e9f0-1234-ef01-567890123456",
-      "name": "LLM章节写作",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [700, 100]
-    },
-    {
-      "parameters": {
-        "functionCode": "// 处理写作结果并进行基础质量检查\nfor (const item of $input.all()) {\n  try {\n    const writtenContent = item.json.choices[0].message.content;\n    const taskInfo = $('分发当前批次任务').first().json;\n    const currentTask = taskInfo.currentTask;\n    \n    // 基础质量检查\n    const wordCount = writtenContent.split(/\\s+/).length;\n    const targetWordCount = currentTask.requirements.wordCount;\n    const wordCountRatio = wordCount / targetWordCount;\n    \n    const qualityChecks = {\n      wordCountAppropriate: wordCountRatio >= 0.8 && wordCountRatio <= 1.2,\n      hasStructure: writtenContent.includes('\\n\\n'), // 检查是否有段落结构\n      hasSubheadings: /^#{1,6}\\s/.test(writtenContent) || /\\*\\*.*\\*\\*/.test(writtenContent),\n      hasReferences: writtenContent.includes('[引用]') || writtenContent.includes('\\['),\n      notEmpty: writtenContent.trim().length > 100,\n      properLength: writtenContent.length > 200\n    };\n    \n    const qualityScore = Object.values(qualityChecks).filter(Boolean).length / Object.values(qualityChecks).length;\n    \n    // 生成写作结果\n    const writingResult = {\n      taskId: currentTask.taskId,\n      chapter: currentTask.chapter,\n      section: currentTask.section,\n      title: currentTask.title,\n      content: writtenContent,\n      metadata: {\n        actualWordCount: wordCount,\n        targetWordCount: targetWordCount,\n        wordCountRatio: wordCountRatio,\n        writtenAt: new Date().toISOString(),\n        qualityScore: qualityScore\n      },\n      qualityCheck: {\n        score: qualityScore,\n        details: qualityChecks,\n        status: qualityScore >= 0.8 ? 'good' : qualityScore >= 0.6 ? 'acceptable' : 'needs_review'\n      },\n      processingStage: 'content_written',\n      nextStage: 'quality_review'\n    };\n    \n    item.json = {\n      originalTaskData: taskInfo,\n      writingResult: writingResult,\n      batchInfo: taskInfo.batchInfo\n    };\n    \n  } catch (error) {\n    item.json = {\n      error: '写作结果处理失败',\n      errorMessage: error.message,\n      taskId: $('分发当前批次任务').first().json.currentTask.taskId,\n      processingStage: 'writing_failed'\n    };\n  }\n}\n\nreturn $input.all();"
-      },
-      "id": "b6c7d8e9-f0g1-2345-f012-678901234567",
-      "name": "写作结果处理",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [900, 100]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "={{ $json.writingResult && $json.writingResult.qualityCheck.status === 'needs_review' }}",
-            "operation": "equal",
-            "rightValue": "true"
-          }
-        }
-      },
-      "id": "c7d8e9f0-g1h2-3456-0123-789012345678",
-      "name": "质量预检查",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [1100, 100]
-    },
-    {
-      "parameters": {
-        "url": "{{ $('环境配置').item.json.taskStatusUrl }}",
-        "method": "POST",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "taskId",
-              "value": "={{ $json.writingResult.taskId }}"
-            },
-            {
-              "name": "status",
-              "value": "completed"
-            },
-            {
-              "name": "result",
-              "value": "={{ $json.writingResult }}"
-            }
-          ]
-        }
-      },
-      "id": "d8e9f0g1-h2i3-4567-1234-890123456789",
-      "name": "更新任务状态",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [1300, 80]
-    },
-    {
-      "parameters": {
-        "url": "{{ $('环境配置').item.json.reviewWorkflowUrl }}",
-        "method": "POST",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
               "name": "writingResult",
               "value": "={{ $json.writingResult }}"
             },
             {
               "name": "reviewType",
               "value": "quality_review"
+            },
+            {
+              "name": "sessionId",
+              "value": "={{ $json.writingResult.taskInfo.sessionId || $('Writing Request Parser').item.json.sessionId }}"
             }
           ]
+        },
+        "options": {
+          "timeout": 30000
         }
       },
-      "id": "e9f0g1h2-i3j4-5678-2345-901234567890",
-      "name": "发送质量审核",
+      "id": "trigger-quality-review",
+      "name": "触发质量审核",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1100, 300]
-    },
-    {
-      "parameters": {},
-      "id": "f0g1h2i3-j4k5-6789-3456-012345678901",
-      "name": "收集批次结果",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 2,
-      "position": [1500, 140]
+      "position": [0, -60]
     },
     {
       "parameters": {
-        "functionCode": "// 检查当前批次是否完成，决定是否继续下一批次\nconst allResults = $input.all();\nconst firstResult = allResults[0];\n\nif (!firstResult || !firstResult.json.originalTaskData) {\n  return allResults;\n}\n\nconst originalData = firstResult.json.originalTaskData.originalData;\nconst currentBatch = originalData.taskManagement.currentBatch;\nconst totalBatches = originalData.taskManagement.totalBatches;\n\n// 统计当前批次结果\nconst completedInBatch = allResults.filter(item => \n  item.json.writingResult && item.json.writingResult.processingStage === 'content_written'\n).length;\n\nconst failedInBatch = allResults.filter(item => \n  item.json.error || (item.json.writingResult && item.json.writingResult.qualityCheck.status === 'needs_review')\n).length;\n\n// 更新任务管理状态\nconst updatedTaskManagement = {\n  ...originalData.taskManagement,\n  completedTasks: originalData.taskManagement.completedTasks + completedInBatch,\n  failedTasks: originalData.taskManagement.failedTasks + failedInBatch,\n  currentBatch: currentBatch + 1\n};\n\n// 收集已完成的内容\nconst completedContents = allResults.filter(item => item.json.writingResult).map(item => item.json.writingResult);\n\nconst batchSummary = {\n  originalData: {\n    ...originalData,\n    taskManagement: updatedTaskManagement\n  },\n  batchResults: {\n    batchId: currentBatch,\n    completedCount: completedInBatch,\n    failedCount: failedInBatch,\n    totalInBatch: allResults.length,\n    completedContents: completedContents\n  },\n  overallProgress: {\n    totalTasks: originalData.taskManagement.totalTasks,\n    completedTasks: updatedTaskManagement.completedTasks,\n    failedTasks: updatedTaskManagement.failedTasks,\n    remainingBatches: totalBatches - currentBatch,\n    progressPercentage: (updatedTaskManagement.completedTasks / originalData.taskManagement.totalTasks * 100).toFixed(1)\n  },\n  hasMoreBatches: currentBatch < totalBatches,\n  processingStage: currentBatch < totalBatches ? 'continue_next_batch' : 'all_batches_completed'\n};\n\nreturn [{ json: batchSummary }];"
+        "content": "## update_task_status()\n\n更新任务状态和进度。\n- 记录任务完成情况\n- 更新批次进度信息\n- 检查是否所有任务完成\n- 准备下一批次处理",
+        "height": 400,
+        "width": 440,
+        "color": 5
       },
-      "id": "g1h2i3j4-k5l6-7890-4567-123456789012",
-      "name": "批次进度检查",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        200,
+        -420
+      ],
+      "typeVersion": 1,
+      "id": "task-status-update-note",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 更新任务状态和进度\nfor (const item of $input.all()) {\n  const writingResult = item.json.writingResult;\n  const originalData = $('分发当前批次任务').first().json.originalData;\n  \n  // 更新任务管理信息\n  const taskManagement = originalData.taskManagement;\n  taskManagement.completedTasks += 1;\n  \n  // 检查当前批次是否完成\n  const currentBatch = originalData.taskBatches[taskManagement.currentBatch - 1];\n  const batchCompleted = currentBatch.tasks.every(task => {\n    // 这里需要检查任务状态，简化处理\n    return true;\n  });\n  \n  if (batchCompleted && taskManagement.currentBatch < taskManagement.totalBatches) {\n    taskManagement.currentBatch += 1;\n  }\n  \n  // 检查所有任务是否完成\n  const allTasksCompleted = taskManagement.completedTasks >= taskManagement.totalTasks;\n  \n  // 构建状态更新\n  const statusUpdate = {\n    taskId: writingResult.taskId,\n    status: 'completed',\n    completedAt: new Date().toISOString(),\n    taskManagement: taskManagement,\n    allTasksCompleted: allTasksCompleted,\n    nextAction: allTasksCompleted ? 'workflow_completed' : 'continue_next_batch'\n  };\n  \n  item.json = {\n    statusUpdate: statusUpdate,\n    writingResult: writingResult,\n    processingStage: 'status_updated',\n    success: true\n  };\n}\n\nreturn $input.all();"
+      },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1700, 140]
+      "position": [
+        200,
+        -60
+      ],
+      "id": "update-task-status",
+      "name": "更新任务状态",
+      "notesInFlow": true
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "={{ $json.hasMoreBatches }}",
-            "operation": "equal",
-            "rightValue": "true"
-          }
-        }
+        "content": "## final_output()\n\n生成最终输出结果。\n- 返回写作结果和状态信息\n- 提供任务完成统计\n- 包含后续流程指导",
+        "height": 300,
+        "width": 440,
+        "color": 5
       },
-      "id": "h2i3j4k5-l6m7-8901-5678-234567890123",
-      "name": "检查是否有更多批次",
-      "type": "n8n-nodes-base.if",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        400,
+        -420
+      ],
       "typeVersion": 1,
-      "position": [1900, 140]
+      "id": "final-output-note",
+      "name": "Sticky Note7"
     },
     {
       "parameters": {
-        "amount": 5,
-        "unit": "seconds"
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 生成最终输出\nfor (const item of $input.all()) {\n  const result = {\n    success: true,\n    message: '写作任务完成',\n    data: {\n      writingResult: item.json.writingResult,\n      statusUpdate: item.json.statusUpdate,\n      nextStep: item.json.statusUpdate.allTasksCompleted ? 'workflow_completed' : 'continue_processing'\n    },\n    timestamp: new Date().toISOString(),\n    processingTime: new Date() - new Date($('Writing Request Parser').item.json.timestamp || Date.now())\n  };\n  \n  item.json = result;\n}\n\nreturn $input.all();"
       },
-      "id": "i3j4k5l6-m7n8-9012-6789-345678901234",
-      "name": "批次间隔等待",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1,
-      "position": [2100, 100]
-    },
-    {
-      "parameters": {
-        "functionCode": "// 准备下一批次数据\nfor (const item of $input.all()) {\n  // 重新构造数据以触发下一批次\n  const originalData = item.json.originalData;\n  \n  item.json = originalData; // 返回原始数据格式以便循环处理\n}\n\nreturn $input.all();"
-      },
-      "id": "j4k5l6m7-n8o9-0123-7890-456789012345",
-      "name": "准备下一批次",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2300, 100]
-    },
-    {
-      "parameters": {
-        "functionCode": "// 汇总所有批次的写作结果\nfor (const item of $input.all()) {\n  const completedContents = [];\n  const failedTasks = [];\n  \n  // 这里应该从数据库或临时存储中收集所有已完成的内容\n  // 由于是示例，我们从当前数据中收集\n  if (item.json.batchResults && item.json.batchResults.completedContents) {\n    completedContents.push(...item.json.batchResults.completedContents);\n  }\n  \n  // 按章节和小节排序\n  completedContents.sort((a, b) => {\n    if (a.chapter !== b.chapter) return a.chapter - b.chapter;\n    return a.section.localeCompare(b.section);\n  });\n  \n  const writingSummary = {\n    totalTasks: item.json.overallProgress.totalTasks,\n    completedTasks: item.json.overallProgress.completedTasks,\n    failedTasks: item.json.overallProgress.failedTasks,\n    successRate: (item.json.overallProgress.completedTasks / item.json.overallProgress.totalTasks * 100).toFixed(1),\n    completedContents: completedContents,\n    processingStage: 'writing_completed',\n    nextStage: 'final_assembly',\n    completedAt: new Date().toISOString()\n  };\n  \n  item.json = writingSummary;\n}\n\nreturn $input.all();"
-      },
-      "id": "k5l6m7n8-o9p0-1234-8901-567890123456",
-      "name": "汇总写作结果",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1900, 300]
-    },
-    {
-      "parameters": {
-        "message": "✅ 所有写作任务完成\\n\\n**总任务数：** {{ $json.totalTasks }}\\n**完成任务：** {{ $json.completedTasks }}\\n**失败任务：** {{ $json.failedTasks }}\\n**成功率：** {{ $json.successRate }}%\\n\\n下一步：论文最终整合",
-        "additionalFields": {
-          "title": "写作任务完成"
-        }
-      },
-      "id": "l6m7n8o9-p0q1-2345-9012-678901234567",
-      "name": "写作完成通知",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [2100, 300]
-    },
-    {
-      "parameters": {
-        "message": "📝 批次 {{ $json.batchResults.batchId }} 写作进度\\n\\n**本批次完成：** {{ $json.batchResults.completedCount }}/{{ $json.batchResults.totalInBatch }}\\n**总体进度：** {{ $json.overallProgress.progressPercentage }}%\\n**剩余批次：** {{ $json.overallProgress.remainingBatches }}\\n\\n继续处理下一批次...",
-        "additionalFields": {
-          "title": "写作进度更新"
-        }
-      },
-      "id": "m7n8o9p0-q1r2-3456-0123-789012345678",
-      "name": "进度通知",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [2100, 200]
+      "position": [
+        400,
+        -60
+      ],
+      "id": "final-output-generator",
+      "name": "最终输出生成器",
+      "notesInFlow": true
     }
   ],
   "connections": {
     "写作任务触发器": {
+      "main": [
+        [
+          {
+            "node": "Writing Request Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Writing Configs": {
+      "main": [
+        []
+      ]
+    },
+    "Writing Request Parser": {
       "main": [
         [
           {
@@ -307,47 +461,40 @@
       "main": [
         [
           {
-            "node": "LLM章节写作",
+            "node": "LLM章节内容生成",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "LLM章节写作": {
+    "LLM章节内容生成": {
       "main": [
         [
           {
-            "node": "写作结果处理",
+            "node": "内容生成结果处理",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "写作结果处理": {
+    "内容生成结果处理": {
       "main": [
         [
           {
-            "node": "质量预检查",
+            "node": "触发质量审核",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "质量预检查": {
+    "触发质量审核": {
       "main": [
         [
           {
             "node": "更新任务状态",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "发送质量审核",
             "type": "main",
             "index": 0
           }
@@ -358,102 +505,7 @@
       "main": [
         [
           {
-            "node": "收集批次结果",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "发送质量审核": {
-      "main": [
-        [
-          {
-            "node": "收集批次结果",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "收集批次结果": {
-      "main": [
-        [
-          {
-            "node": "批次进度检查",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "批次进度检查": {
-      "main": [
-        [
-          {
-            "node": "检查是否有更多批次",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "检查是否有更多批次": {
-      "main": [
-        [
-          {
-            "node": "批次间隔等待",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "汇总写作结果",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "批次间隔等待": {
-      "main": [
-        [
-          {
-            "node": "进度通知",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "进度通知": {
-      "main": [
-        [
-          {
-            "node": "准备下一批次",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "准备下一批次": {
-      "main": [
-        [
-          {
-            "node": "分发当前批次任务",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "汇总写作结果": {
-      "main": [
-        [
-          {
-            "node": "写作完成通知",
+            "node": "最终输出生成器",
             "type": "main",
             "index": 0
           }
@@ -461,15 +513,20 @@
       ]
     }
   },
-  "active": false,
+  "pinData": {},
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "writing-agent-v1.0",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "description": "写作Agent工作流：处理论文分任务写作，支持批量并行处理、任务队列管理、质量预检查和进度跟踪。自动按章节顺序和优先级安排写作任务。",
-    "category": "ai-integration",
-    "tags": ["分任务写作", "并行处理", "任务队列", "进度跟踪", "质量控制"]
-  }
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "writing-workflow",
+      "name": "写作处理"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1.0.0"
 }

@@ -1,6 +1,22 @@
 {
-  "name": "质量检验Agent工作流 - 逻辑检验与修改建议",
+  "name": "AI质量检验Agent工作流 - 逻辑检验与修改建议 (基于Gemini-DR格式重构)",
   "nodes": [
+    {
+      "parameters": {
+        "content": "### quality_review_trigger()\n- 接收质量审核请求\n- 支持多种审核类型\n- 使用webhook触发器",
+        "height": 400,
+        "width": 440,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1580,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "review-trigger-note",
+      "name": "Sticky Note"
+    },
     {
       "parameters": {
         "httpMethod": "POST",
@@ -11,59 +27,283 @@
       "name": "质量审核触发器",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [100, 100],
+      "position": [-1580, -60],
       "webhookId": "quality-review"
     },
     {
       "parameters": {
-        "values": [
-          {
-            "name": "llmApiUrl",
-            "value": "https://api.openai.com/v1/chat/completions"
-          },
-          {
-            "name": "llmModel",
-            "value": "gpt-4"
-          },
-          {
-            "name": "reviewerModel",
-            "value": "gpt-4"
-          },
-          {
-            "name": "writerWorkflowUrl",
-            "value": "http://localhost:5678/webhook/writing-agent"
-          },
-          {
-            "name": "assemblyWorkflowUrl",
-            "value": "http://localhost:5678/webhook/final-assembly"
-          },
-          {
-            "name": "maxRevisionCycles",
-            "value": "3"
-          }
-        ]
+        "assignments": {
+          "assignments": [
+            {
+              "id": "config-1",
+              "name": "max_revision_cycles",
+              "value": 3,
+              "type": "number"
+            },
+            {
+              "id": "config-2",
+              "name": "min_quality_score",
+              "value": 7,
+              "type": "number"
+            },
+            {
+              "id": "config-3",
+              "name": "current_date",
+              "value": "={{$now.format('yyyy-LL-dd')}}",
+              "type": "string"
+            },
+            {
+              "id": "config-4",
+              "name": "review_id",
+              "value": "=review:quality-review:{{ $json.sessionId }}:",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
       },
-      "id": "r2s3t4u5-v6w7-8901-bcde-f23456789012",
-      "name": "环境配置",
       "type": "n8n-nodes-base.set",
-      "typeVersion": 2,
-      "position": [100, 300]
+      "typeVersion": 3.4,
+      "position": [
+        -1880,
+        -60
+      ],
+      "id": "review-configs",
+      "name": "Review Configs"
     },
     {
       "parameters": {
-        "functionCode": "// 初始化质量审核流程\nfor (const item of $input.all()) {\n  const writingResult = item.json.writingResult;\n  const reviewType = item.json.reviewType || 'quality_review';\n  \n  // 确定审核级别\n  const reviewLevel = {\n    'quality_review': 'standard',\n    'logic_check': 'comprehensive',\n    'consistency_check': 'cross_reference',\n    'final_review': 'thorough'\n  }[reviewType] || 'standard';\n  \n  // 构建审核上下文\n  const reviewContext = {\n    contentInfo: {\n      taskId: writingResult.taskId,\n      chapter: writingResult.chapter,\n      section: writingResult.section,\n      title: writingResult.title,\n      wordCount: writingResult.metadata.actualWordCount,\n      targetWordCount: writingResult.metadata.targetWordCount\n    },\n    content: writingResult.content,\n    previousQualityScore: writingResult.qualityCheck.score,\n    reviewLevel: reviewLevel,\n    reviewType: reviewType,\n    revisionHistory: writingResult.revisionHistory || [],\n    currentRevisionCycle: (writingResult.revisionCycle || 0) + 1\n  };\n  \n  item.json = {\n    reviewContext: reviewContext,\n    originalWritingResult: writingResult,\n    processingStage: 'review_initialization',\n    startedAt: new Date().toISOString()\n  };\n}\n\nreturn $input.all();"
+        "content": "### Review Configs\n- `max_revision_cycles` (*最大修订轮次*): 3\n- `min_quality_score` (*最低质量分数*): 7\n\n### variables:\n- `current_date`\n- `review_id`\n\n",
+        "height": 300,
+        "width": 340,
+        "color": 4
       },
-      "id": "s3t4u5v6-w7x8-9012-cdef-345678901234",
-      "name": "审核流程初始化",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1980,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "review-configs-note",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1540,
+        200
+      ],
+      "id": "review-gemini-model",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "sUx2BOKL53mwfOJl",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"writingResult\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"taskId\": {\n          \"type\": \"string\"\n        },\n        \"chapter\": {\n          \"type\": \"number\"\n        },\n        \"section\": {\n          \"type\": \"string\"\n        },\n        \"title\": {\n          \"type\": \"string\"\n        },\n        \"content\": {\n          \"type\": \"string\"\n        },\n        \"metadata\": {\n          \"type\": \"object\"\n        },\n        \"qualityCheck\": {\n          \"type\": \"object\"\n        }\n      }\n    },\n    \"reviewType\": {\n      \"type\": \"string\",\n      \"enum\": [\"quality_review\", \"logic_check\", \"consistency_check\", \"final_review\"],\n      \"description\": \"审核类型\"\n    },\n    \"sessionId\": {\n      \"type\": \"string\",\n      \"description\": \"会话ID\"\n    }\n  },\n  \"required\": [\"writingResult\", \"sessionId\"],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -1260,
+        180
+      ],
+      "id": "review-input-parser",
+      "name": "Review Input Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是一个专业的质量审核系统。请分析用户请求并确定审核类型。
+
+审核类型说明：
+1. **quality_review**：标准质量审核
+2. **logic_check**：逻辑一致性检查
+3. **consistency_check**：跨章节一致性检查
+4. **final_review**：最终审核
+
+请根据输入确定正确的审核类型和相关信息。
+
+输入内容：{{ $('质量审核触发器').item.json }}",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -1480,
+        -60
+      ],
+      "id": "review-request-parser",
+      "name": "Review Request Parser",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "content": "## initialize_review_process()\n\n初始化质量审核流程。\n- 确定审核级别和类型\n- 构建审核上下文\n- 准备审核数据\n- 设置审核参数",
+        "height": 500,
+        "width": 440,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1000,
+        -420
+      ],
+      "typeVersion": 1,
+      "id": "review-init-note",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 初始化质量审核流程\nfor (const item of $input.all()) {\n  const writingResult = item.json.writingResult;\n  const reviewType = item.json.reviewType || 'quality_review';\n  \n  // 确定审核级别\n  const reviewLevel = {\n    'quality_review': 'standard',\n    'logic_check': 'comprehensive',\n    'consistency_check': 'cross_reference',\n    'final_review': 'thorough'\n  }[reviewType] || 'standard';\n  \n  // 构建审核上下文\n  const reviewContext = {\n    contentInfo: {\n      taskId: writingResult.taskId,\n      chapter: writingResult.chapter,\n      section: writingResult.section,\n      title: writingResult.title,\n      wordCount: writingResult.metadata.actualWordCount,\n      targetWordCount: writingResult.metadata.targetWordCount\n    },\n    content: writingResult.content,\n    previousQualityScore: writingResult.qualityCheck.score,\n    reviewLevel: reviewLevel,\n    reviewType: reviewType,\n    revisionHistory: writingResult.revisionHistory || [],\n    currentRevisionCycle: (writingResult.revisionCycle || 0) + 1\n  };\n  \n  item.json = {\n    reviewContext: reviewContext,\n    originalWritingResult: writingResult,\n    processingStage: 'review_initialization',\n    startedAt: new Date().toISOString()\n  };\n}\n\nreturn $input.all();"
+      },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [300, 100]
+      "position": [
+        -800,
+        -80
+      ],
+      "id": "review-process-initialization",
+      "name": "审核流程初始化",
+      "notesInFlow": true
     },
     {
       "parameters": {
-        "url": "{{ $('环境配置').item.json.llmApiUrl }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "content": "## perform_quality_review()\n\n使用Gemini模型进行质量审核。\n- 分析逻辑结构和论证\n- 检查语言表达质量\n- 评估学术规范性\n- 识别改进建议",
+        "height": 500,
+        "width": 440,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -600,
+        -420
+      ],
+      "typeVersion": 1,
+      "id": "quality-review-note",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"overallScore\": {\n      \"type\": \"number\",\n      \"minimum\": 1,\n      \"maximum\": 10,\n      \"description\": \"总体质量评分\"\n    },\n    \"qualityAssessment\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"logicScore\": {\n          \"type\": \"number\",\n          \"minimum\": 1,\n          \"maximum\": 10,\n          \"description\": \"逻辑评分\"\n        },\n        \"contentScore\": {\n          \"type\": \"number\",\n          \"minimum\": 1,\n          \"maximum\": 10,\n          \"description\": \"内容评分\"\n        },\n        \"languageScore\": {\n          \"type\": \"number\",\n          \"minimum\": 1,\n          \"maximum\": 10,\n          \"description\": \"语言评分\"\n        },\n        \"structureScore\": {\n          \"type\": \"number\",\n          \"minimum\": 1,\n          \"maximum\": 10,\n          \"description\": \"结构评分\"\n        },\n        \"citationScore\": {\n          \"type\": \"number\",\n          \"minimum\": 1,\n          \"maximum\": 10,\n          \"description\": \"引用评分\"\n        },\n        \"originalityScore\": {\n          \"type\": \"number\",\n          \"minimum\": 1,\n          \"maximum\": 10,\n          \"description\": \"原创性评分\"\n        }\n      },\n      \"required\": [\"logicScore\", \"contentScore\", \"languageScore\", \"structureScore\", \"citationScore\", \"originalityScore\"]\n    },\n    \"issuesFound\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"type\": {\n            \"type\": \"string\",\n            \"description\": \"问题类型\"\n          },\n          \"severity\": {\n            \"type\": \"string\",\n            \"enum\": [\"critical\", \"major\", \"minor\"],\n            \"description\": \"严重程度\"\n          },\n          \"location\": {\n            \"type\": \"string\",\n            \"description\": \"问题位置\"\n          },\n          \"description\": {\n            \"type\": \"string\",\n            \"description\": \"问题描述\"\n          },\n          \"suggestion\": {\n            \"type\": \"string\",\n            \"description\": \"修改建议\"\n          }\n        },\n        \"required\": [\"type\", \"severity\", \"location\", \"description\", \"suggestion\"]\n      }\n    },\n    \"overallFeedback\": {\n      \"type\": \"string\",\n      \"description\": \"总体评价和建议\"\n    },\n    \"needsRevision\": {\n      \"type\": \"boolean\",\n      \"description\": \"是否需要修订\"\n    },\n    \"approvedForNext\": {\n      \"type\": \"boolean\",\n      \"description\": \"是否批准进入下一阶段\"\n    }\n  },\n  \"required\": [\"overallScore\", \"qualityAssessment\", \"issuesFound\", \"overallFeedback\", \"needsRevision\", \"approvedForNext\"],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        180
+      ],
+      "id": "quality-review-parser",
+      "name": "Quality Review Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是一个专业的学术论文审核专家。你的任务是对论文章节内容进行全面的质量检验，包括逻辑一致性、论证充分性、语言规范性等方面。
+
+审核标准：
+1. **逻辑结构**：论证逻辑是否清晰，前后是否连贯
+2. **内容质量**：是否符合学术规范，论据是否充分
+3. **语言表达**：用词是否准确，表达是否专业
+4. **结构完整性**：章节结构是否合理，内容是否完整
+5. **引用规范**：引用格式是否正确，来源是否可靠
+6. **原创性**：内容是否具有学术价值，避免重复和冗余
+
+请审核以下论文章节内容：
+
+## 章节信息
+**章节：** 第{{ $json.reviewContext.contentInfo.chapter }}章
+**小节：** {{ $json.reviewContext.contentInfo.section }} {{ $json.reviewContext.contentInfo.title }}
+**字数：** {{ $json.reviewContext.contentInfo.wordCount }}/{{ $json.reviewContext.contentInfo.targetWordCount }}字
+**审核类型：** {{ $json.reviewContext.reviewType }}
+**审核级别：** {{ $json.reviewContext.reviewLevel }}
+**修订轮次：** {{ $json.reviewContext.currentRevisionCycle }}
+
+## 章节内容
+{{ $json.reviewContext.content }}
+
+{{ $json.reviewContext.revisionHistory.length > 0 ? '## 修订历史
+' + $json.reviewContext.revisionHistory.map((rev, index) => `**第${index + 1}次修订：** ${rev.summary}`).join('
+') : '' }}
+
+请进行全面的质量审核并提供详细的反馈意见。",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -600,
+        -60
+      ],
+      "id": "llm-quality-review",
+      "name": "LLM质量审核",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 处理质量审核结果\nfor (const item of $input.all()) {\n  try {\n    const reviewResult = item.json;\n    const reviewContext = $('审核流程初始化').first().json.reviewContext;\n    \n    // 分析审核结果\n    const qualityAnalysis = {\n      overallScore: reviewResult.overallScore,\n      detailedScores: reviewResult.qualityAssessment,\n      averageScore: (reviewResult.qualityAssessment.logicScore + \n                    reviewResult.qualityAssessment.contentScore + \n                    reviewResult.qualityAssessment.languageScore + \n                    reviewResult.qualityAssessment.structureScore + \n                    reviewResult.qualityAssessment.citationScore + \n                    reviewResult.qualityAssessment.originalityScore) / 6\n    };\n    \n    // 分类问题\n    const criticalIssues = reviewResult.issuesFound.filter(issue => \n      issue.severity === 'critical'\n    );\n    \n    const majorIssues = reviewResult.issuesFound.filter(issue => \n      issue.severity === 'major'\n    );\n    \n    const minorIssues = reviewResult.issuesFound.filter(issue => \n      issue.severity === 'minor'\n    );\n    \n    // 确定修订策略\n    const revisionStrategy = {\n      needsRevision: reviewResult.needsRevision,\n      revisionType: criticalIssues.length > 0 ? 'major_revision' : \n                   majorIssues.length > 0 ? 'moderate_revision' : \n                   minorIssues.length > 0 ? 'minor_revision' : 'no_revision',\n      priorityIssues: criticalIssues.concat(majorIssues).slice(0, 5),\n      estimatedTime: criticalIssues.length > 0 ? '2-3小时' : \n                    majorIssues.length > 0 ? '1-2小时' : \n                    minorIssues.length > 0 ? '30分钟-1小时' : '无需修订'\n    };\n    \n    // 构建审核报告\n    const reviewReport = {\n      reviewId: $('Review Configs').item.json.review_id,\n      sessionId: $('Review Request Parser').item.json.sessionId,\n      contentInfo: reviewContext.contentInfo,\n      qualityAnalysis: qualityAnalysis,\n      issuesAnalysis: {\n        totalIssues: reviewResult.issuesFound.length,\n        criticalIssues: criticalIssues.length,\n        majorIssues: majorIssues.length,\n        minorIssues: minorIssues.length,\n        issueDetails: reviewResult.issuesFound\n      },\n      revisionStrategy: revisionStrategy,\n      overallFeedback: reviewResult.overallFeedback,\n      approvedForNext: reviewResult.approvedForNext && qualityAnalysis.averageScore >= $('Review Configs').item.json.min_quality_score,\n      reviewMetadata: {\n        reviewType: reviewContext.reviewType,\n        reviewLevel: reviewContext.reviewLevel,\n        revisionCycle: reviewContext.currentRevisionCycle,\n        reviewedAt: new Date().toISOString()\n      },\n      processingStage: 'review_completed',\n      status: 'completed'\n    };\n    \n    item.json = {\n      reviewReport: reviewReport,\n      originalReviewResult: reviewResult,\n      processingStage: 'review_processed',\n      success: true\n    };\n    \n  } catch (error) {\n    item.json = {\n      error: '质量审核处理失败',\n      errorMessage: error.message,\n      originalResponse: item.json,\n      processingStage: 'processing_failed'\n    };\n  }\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        -60
+      ],
+      "id": "quality-review-result-processor",
+      "name": "质量审核结果处理",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "={{ $json.reviewReport.needsRevision }}",
+            "operation": "equal",
+            "rightValue": "true"
+          }
+        }
+      },
+      "id": "revision-needed-check",
+      "name": "检查是否需要修订",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-200, -60]
+    },
+    {
+      "parameters": {
+        "content": "## trigger_revision_workflow()\n\n触发修订工作流。\n- 将审核结果发送给写作Agent\n- 启动内容修订流程\n- 传递修订建议和要求",
+        "height": 400,
+        "width": 440,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        -420
+      ],
+      "typeVersion": 1,
+      "id": "revision-trigger-note",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5678/webhook/writing-agent",
         "method": "POST",
         "sendHeaders": true,
         "headerParameters": {
@@ -78,160 +318,131 @@
         "bodyParameters": {
           "parameters": [
             {
-              "name": "model",
-              "value": "{{ $('环境配置').item.json.reviewerModel }}"
+              "name": "revisionRequest",
+              "value": "={{ $json.reviewReport }}"
             },
             {
-              "name": "messages",
-              "value": "=[{\"role\": \"system\", \"content\": \"你是一个专业的学术论文审核专家。你的任务是对论文章节内容进行全面的质量检验，包括逻辑一致性、论证充分性、语言规范性等方面。\\n\\n审核标准：\\n1. **逻辑结构**：论证逻辑是否清晰，前后是否连贯\\n2. **内容质量**：是否符合学术规范，论据是否充分\\n3. **语言表达**：用词是否准确，表达是否专业\\n4. **结构完整性**：章节结构是否合理，内容是否完整\\n5. **引用规范**：引用格式是否正确，来源是否可靠\\n6. **原创性**：内容是否具有学术价值，避免重复和冗余\\n\\n输出格式为JSON：\\n{\\n  \\\"overallScore\\\": 评分(1-10),\\n  \\\"qualityAssessment\\\": {\\n    \\\"logicScore\\\": 逻辑评分(1-10),\\n    \\\"contentScore\\\": 内容评分(1-10),\\n    \\\"languageScore\\\": 语言评分(1-10),\\n    \\\"structureScore\\\": 结构评分(1-10),\\n    \\\"citationScore\\\": 引用评分(1-10),\\n    \\\"originalityScore\\\": 原创性评分(1-10)\\n  },\\n  \\\"issuesFound\\\": [\\n    {\\n      \\\"type\\\": \\\"问题类型\\\",\\n      \\\"severity\\\": \\\"严重程度(critical/major/minor)\\\",\\n      \\\"location\\\": \\\"问题位置\\\",\\n      \\\"description\\\": \\\"问题描述\\\",\\n      \\\"suggestion\\\": \\\"修改建议\\\"\\n    }\\n  ],\\n  \\\"overallFeedback\\\": \\\"总体评价和建议\\\",\\n  \\\"needsRevision\\\": true/false,\\n  \\\"approvedForNext\\\": true/false\\n}\"}, {\"role\": \"user\", \"content\": \"请审核以下论文章节内容：\\n\\n## 章节信息\\n**章节：** 第{{ $json.reviewContext.contentInfo.chapter }}章\\n**小节：** {{ $json.reviewContext.contentInfo.section }} {{ $json.reviewContext.contentInfo.title }}\\n**字数：** {{ $json.reviewContext.contentInfo.wordCount }}/{{ $json.reviewContext.contentInfo.targetWordCount }}字\\n**审核类型：** {{ $json.reviewContext.reviewType }}\\n**审核级别：** {{ $json.reviewContext.reviewLevel }}\\n**修订轮次：** {{ $json.reviewContext.currentRevisionCycle }}\\n\\n## 章节内容\\n{{ $json.reviewContext.content }}\\n\\n{{ $json.reviewContext.revisionHistory.length > 0 ? '## 修订历史\\n' + $json.reviewContext.revisionHistory.map((rev, index) => `**第${index + 1}次修订：** ${rev.summary}`).join('\\n') : '' }}\\n\\n请进行全面的质量审核并提供详细的反馈意见。\"}]"
-            },
-            {
-              "name": "temperature",
-              "value": "0.2"
-            },
-            {
-              "name": "max_tokens",
-              "value": "2000"
+              "name": "sessionId",
+              "value": "={{ $json.reviewReport.sessionId }}"
             }
           ]
+        },
+        "options": {
+          "timeout": 30000
         }
       },
-      "id": "t4u5v6w7-x8y9-0123-def0-456789012345",
-      "name": "LLM质量审核",
+      "id": "trigger-revision-workflow",
+      "name": "触发修订工作流",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [500, 100]
+      "position": [0, -60]
     },
     {
       "parameters": {
-        "functionCode": "// 处理审核结果并生成改进建议\nfor (const item of $input.all()) {\n  try {\n    const reviewResponse = JSON.parse(item.json.choices[0].message.content);\n    const reviewContext = $('审核流程初始化').first().json.reviewContext;\n    const originalResult = $('审核流程初始化').first().json.originalWritingResult;\n    \n    // 分析审核结果\n    const qualityGrades = {\n      excellent: { min: 9, label: '优秀' },\n      good: { min: 7, label: '良好' },\n      acceptable: { min: 6, label: '及格' },\n      needsImprovement: { min: 4, label: '需改进' },\n      poor: { min: 0, label: '不合格' }\n    };\n    \n    const overallGrade = Object.entries(qualityGrades).find(\n      ([grade, criteria]) => reviewResponse.overallScore >= criteria.min\n    )?.[0] || 'poor';\n    \n    // 统计问题严重程度\n    const issueStats = {\n      critical: reviewResponse.issuesFound.filter(issue => issue.severity === 'critical').length,\n      major: reviewResponse.issuesFound.filter(issue => issue.severity === 'major').length,\n      minor: reviewResponse.issuesFound.filter(issue => issue.severity === 'minor').length\n    };\n    \n    // 决定是否需要修订\n    const needsRevision = reviewResponse.needsRevision || \n                         reviewResponse.overallScore < 7 || \n                         issueStats.critical > 0 || \n                         issueStats.major > 2;\n    \n    // 检查修订次数限制\n    const maxCycles = parseInt($('环境配置').item.json.maxRevisionCycles);\n    const exceedsMaxCycles = reviewContext.currentRevisionCycle >= maxCycles;\n    \n    // 生成修订指令（如果需要修订）\n    let revisionInstructions = null;\n    if (needsRevision && !exceedsMaxCycles) {\n      revisionInstructions = {\n        priority: 'high',\n        targetIssues: reviewResponse.issuesFound.filter(issue => \n          issue.severity === 'critical' || issue.severity === 'major'\n        ),\n        generalGuidance: reviewResponse.overallFeedback,\n        specificChanges: reviewResponse.issuesFound.map(issue => ({\n          location: issue.location,\n          change: issue.suggestion,\n          reason: issue.description\n        }))\n      };\n    }\n    \n    // 构建审核结果\n    const reviewResult = {\n      // 基础信息\n      taskId: reviewContext.contentInfo.taskId,\n      reviewedAt: new Date().toISOString(),\n      reviewType: reviewContext.reviewType,\n      revisionCycle: reviewContext.currentRevisionCycle,\n      \n      // 质量评估\n      qualityAssessment: {\n        overallScore: reviewResponse.overallScore,\n        overallGrade: overallGrade,\n        gradeLabel: qualityGrades[overallGrade].label,\n        detailedScores: reviewResponse.qualityAssessment,\n        averageScore: Object.values(reviewResponse.qualityAssessment).reduce((a, b) => a + b) / Object.values(reviewResponse.qualityAssessment).length\n      },\n      \n      // 问题分析\n      issueAnalysis: {\n        totalIssues: reviewResponse.issuesFound.length,\n        issueStats: issueStats,\n        issueDetails: reviewResponse.issuesFound\n      },\n      \n      // 决策结果\n      decisions: {\n        needsRevision: needsRevision,\n        approvedForNext: reviewResponse.approvedForNext && !needsRevision,\n        exceedsMaxCycles: exceedsMaxCycles,\n        finalDecision: exceedsMaxCycles ? 'force_approve' : \n                      needsRevision ? 'request_revision' : 'approve'\n      },\n      \n      // 反馈和建议\n      feedback: {\n        overallFeedback: reviewResponse.overallFeedback,\n        revisionInstructions: revisionInstructions\n      },\n      \n      // 原始内容引用\n      originalContent: reviewContext.content,\n      processingStage: 'review_completed',\n      nextStage: needsRevision && !exceedsMaxCycles ? 'revision_required' : 'content_approved'\n    };\n    \n    item.json = {\n      reviewResult: reviewResult,\n      originalWritingResult: originalResult\n    };\n    \n  } catch (error) {\n    item.json = {\n      error: '审核结果处理失败',\n      errorMessage: error.message,\n      originalResponse: item.json,\n      processingStage: 'review_failed'\n    };\n  }\n}\n\nreturn $input.all();"
+        "content": "## trigger_assembly_workflow()\n\n触发整合工作流。\n- 将审核通过的内容发送给整合系统\n- 启动论文整合流程\n- 传递已批准内容",
+        "height": 400,
+        "width": 440,
+        "color": 5
       },
-      "id": "u5v6w7x8-y9z0-1234-ef01-567890123456",
-      "name": "审核结果处理",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [700, 100]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "={{ $json.reviewResult && $json.reviewResult.decisions.finalDecision }}",
-            "operation": "equal",
-            "rightValue": "request_revision"
-          }
-        }
-      },
-      "id": "v6w7x8y9-z0a1-2345-f012-678901234567",
-      "name": "审核决策分支",
-      "type": "n8n-nodes-base.if",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        20
+      ],
       "typeVersion": 1,
-      "position": [900, 100]
+      "id": "assembly-trigger-note",
+      "name": "Sticky Note5"
     },
     {
       "parameters": {
-        "functionCode": "// 生成修订任务并发送给写作Agent\nfor (const item of $input.all()) {\n  const reviewResult = item.json.reviewResult;\n  const originalResult = item.json.originalWritingResult;\n  \n  // 构建修订任务\n  const revisionTask = {\n    taskId: reviewResult.taskId,\n    type: 'content_revision',\n    revisionCycle: reviewResult.revisionCycle,\n    \n    // 原始内容和要求\n    originalContent: reviewResult.originalContent,\n    originalRequirements: {\n      chapter: originalResult.chapter,\n      section: originalResult.section,\n      title: originalResult.title,\n      targetWordCount: originalResult.metadata.targetWordCount\n    },\n    \n    // 修订指令\n    revisionInstructions: reviewResult.feedback.revisionInstructions,\n    \n    // 质量标准\n    qualityTargets: {\n      minimumOverallScore: 7.5,\n      maxCriticalIssues: 0,\n      maxMajorIssues: 1\n    },\n    \n    // 修订历史\n    revisionHistory: originalResult.revisionHistory || [],\n    \n    // 时间戳\n    createdAt: new Date().toISOString(),\n    priority: 'high'\n  };\n  \n  // 更新修订历史\n  revisionTask.revisionHistory.push({\n    cycle: reviewResult.revisionCycle,\n    reviewScore: reviewResult.qualityAssessment.overallScore,\n    issues: reviewResult.issueAnalysis.totalIssues,\n    summary: `第${reviewResult.revisionCycle}轮审核：发现${reviewResult.issueAnalysis.totalIssues}个问题，需要修订`,\n    timestamp: new Date().toISOString()\n  });\n  \n  item.json = {\n    revisionTask: revisionTask,\n    reviewResult: reviewResult\n  };\n}\n\nreturn $input.all();"
-      },
-      "id": "w7x8y9z0-a1b2-3456-0123-789012345678",
-      "name": "生成修订任务",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1100, 80]
-    },
-    {
-      "parameters": {
-        "url": "{{ $('环境配置').item.json.writerWorkflowUrl }}",
+        "url": "http://localhost:5678/webhook/final-assembly",
         "method": "POST",
-        "sendBody": true,
-        "bodyParameters": {
+        "sendHeaders": true,
+        "headerParameters": {
           "parameters": [
             {
-              "name": "revisionTask",
-              "value": "={{ $json.revisionTask }}"
-            },
-            {
-              "name": "taskType",
-              "value": "revision"
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
-        }
-      },
-      "id": "x8y9z0a1-b2c3-4567-1234-890123456789",
-      "name": "发送修订任务",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [1300, 80]
-    },
-    {
-      "parameters": {
-        "functionCode": "// 标记内容已通过审核，准备最终整合\nfor (const item of $input.all()) {\n  const reviewResult = item.json.reviewResult;\n  const originalResult = item.json.originalWritingResult;\n  \n  // 创建已批准的内容记录\n  const approvedContent = {\n    taskId: reviewResult.taskId,\n    chapter: originalResult.chapter,\n    section: originalResult.section,\n    title: originalResult.title,\n    content: reviewResult.originalContent,\n    \n    // 质量信息\n    finalQualityScore: reviewResult.qualityAssessment.overallScore,\n    qualityGrade: reviewResult.qualityAssessment.overallGrade,\n    revisionCycles: reviewResult.revisionCycle,\n    \n    // 审核信息\n    approvedAt: new Date().toISOString(),\n    approvedBy: 'quality_review_agent',\n    reviewType: reviewResult.reviewType,\n    \n    // 元数据\n    wordCount: originalResult.metadata.actualWordCount,\n    targetWordCount: originalResult.metadata.targetWordCount,\n    wordCountRatio: originalResult.metadata.wordCountRatio,\n    \n    // 状态\n    status: 'approved',\n    readyForAssembly: true,\n    processingStage: 'content_approved'\n  };\n  \n  item.json = {\n    approvedContent: approvedContent,\n    reviewResult: reviewResult\n  };\n}\n\nreturn $input.all();"
-      },
-      "id": "y9z0a1b2-c3d4-5678-2345-901234567890",
-      "name": "标记内容已批准",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1100, 200]
-    },
-    {
-      "parameters": {
-        "url": "{{ $('环境配置').item.json.assemblyWorkflowUrl }}",
-        "method": "POST",
+        },
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            {
-              "name": "approvedContent",
-              "value": "={{ $json.approvedContent }}"
-            },
             {
               "name": "action",
               "value": "add_approved_content"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.reviewReport }}"
+            },
+            {
+              "name": "sessionId",
+              "value": "={{ $json.reviewReport.sessionId }}"
             }
           ]
+        },
+        "options": {
+          "timeout": 30000
         }
       },
-      "id": "z0a1b2c3-d4e5-6789-3456-012345678901",
-      "name": "发送至最终整合",
+      "id": "trigger-assembly-workflow",
+      "name": "触发整合工作流",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1300, 200]
-    },
-    {
-      "parameters": {},
-      "id": "a1b2c3d4-e5f6-7890-4567-123456789012",
-      "name": "审核结果合并",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 2,
-      "position": [1500, 140]
+      "position": [0, 20]
     },
     {
       "parameters": {
-        "functionCode": "// 生成审核报告并记录审核历史\nfor (const item of $input.all()) {\n  let reviewResult, action;\n  \n  if (item.json.revisionTask) {\n    reviewResult = item.json.reviewResult;\n    action = 'revision_requested';\n  } else if (item.json.approvedContent) {\n    reviewResult = item.json.reviewResult;\n    action = 'content_approved';\n  } else {\n    continue;\n  }\n  \n  // 生成审核报告\n  const auditReport = {\n    reportId: `audit-${reviewResult.taskId}-${reviewResult.revisionCycle}`,\n    taskId: reviewResult.taskId,\n    timestamp: new Date().toISOString(),\n    \n    // 审核概要\n    summary: {\n      action: action,\n      overallScore: reviewResult.qualityAssessment.overallScore,\n      grade: reviewResult.qualityAssessment.gradeLabel,\n      totalIssues: reviewResult.issueAnalysis.totalIssues,\n      revisionCycle: reviewResult.revisionCycle\n    },\n    \n    // 详细评估\n    assessment: reviewResult.qualityAssessment,\n    issues: reviewResult.issueAnalysis,\n    feedback: reviewResult.feedback.overallFeedback,\n    \n    // 决策记录\n    decision: reviewResult.decisions,\n    \n    // 后续行动\n    nextActions: action === 'revision_requested' ? \n      ['内容修订', '重新审核'] : \n      ['添加到最终文档', '等待其他章节完成'],\n      \n    processingStage: 'audit_completed'\n  };\n  \n  item.json = {\n    auditReport: auditReport,\n    reviewResult: reviewResult,\n    action: action\n  };\n}\n\nreturn $input.all();"
+        "content": "## final_output()\n\n生成最终输出结果。\n- 返回质量审核报告\n- 提供处理状态信息\n- 包含后续流程指导",
+        "height": 300,
+        "width": 440,
+        "color": 5
       },
-      "id": "b2c3d4e5-f6g7-8901-5678-234567890123",
-      "name": "生成审核报告",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        200,
+        -420
+      ],
+      "typeVersion": 1,
+      "id": "final-output-note",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 生成最终输出\nfor (const item of $input.all()) {\n  const result = {\n    success: true,\n    message: '质量审核完成',\n    data: {\n      reviewReport: item.json.reviewReport,\n      nextStep: item.json.reviewReport.needsRevision ? 'revision' : 'assembly'\n    },\n    timestamp: new Date().toISOString(),\n    processingTime: new Date() - new Date($('Review Request Parser').item.json.timestamp || Date.now())\n  };\n  \n  item.json = result;\n}\n\nreturn $input.all();"
+      },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1700, 140]
-    },
-    {
-      "parameters": {
-        "message": "🔍 质量审核完成\\n\\n**任务ID：** {{ $json.auditReport.taskId }}\\n**审核结果：** {{ $json.auditReport.summary.grade }} ({{ $json.auditReport.summary.overallScore }}/10)\\n**发现问题：** {{ $json.auditReport.summary.totalIssues }}个\\n**处理结果：** {{ $json.auditReport.summary.action === 'revision_requested' ? '✏️ 需要修订' : '✅ 已批准' }}\\n**修订轮次：** {{ $json.auditReport.summary.revisionCycle }}",
-        "additionalFields": {
-          "title": "质量审核报告",
-          "color": "{{ $json.auditReport.summary.action === 'revision_requested' ? '#FF9500' : '#00C851' }}"
-        }
-      },
-      "id": "c3d4e5f6-g7h8-9012-6789-345678901234",
-      "name": "审核结果通知",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [1900, 140]
+      "position": [
+        200,
+        -60
+      ],
+      "id": "final-output-generator",
+      "name": "最终输出生成器",
+      "notesInFlow": true
     }
   ],
   "connections": {
     "质量审核触发器": {
+      "main": [
+        [
+          {
+            "node": "Review Request Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review Configs": {
+      "main": [
+        []
+      ]
+    },
+    "Review Request Parser": {
       "main": [
         [
           {
@@ -257,102 +468,58 @@
       "main": [
         [
           {
-            "node": "审核结果处理",
+            "node": "质量审核结果处理",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "审核结果处理": {
+    "质量审核结果处理": {
       "main": [
         [
           {
-            "node": "审核决策分支",
+            "node": "检查是否需要修订",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "审核决策分支": {
+    "检查是否需要修订": {
       "main": [
         [
           {
-            "node": "生成修订任务",
+            "node": "触发修订工作流",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "标记内容已批准",
+            "node": "触发整合工作流",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "生成修订任务": {
+    "触发修订工作流": {
       "main": [
         [
           {
-            "node": "发送修订任务",
+            "node": "最终输出生成器",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "发送修订任务": {
+    "触发整合工作流": {
       "main": [
         [
           {
-            "node": "审核结果合并",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "标记内容已批准": {
-      "main": [
-        [
-          {
-            "node": "发送至最终整合",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "发送至最终整合": {
-      "main": [
-        [
-          {
-            "node": "审核结果合并",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "审核结果合并": {
-      "main": [
-        [
-          {
-            "node": "生成审核报告",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "生成审核报告": {
-      "main": [
-        [
-          {
-            "node": "审核结果通知",
+            "node": "最终输出生成器",
             "type": "main",
             "index": 0
           }
@@ -360,15 +527,20 @@
       ]
     }
   },
-  "active": false,
+  "pinData": {},
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "quality-review-v1.0",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "description": "质量检验Agent工作流：对写作内容进行全面质量审核，包括逻辑检验、语言规范检查、结构分析等。支持多轮修订机制和详细的问题反馈。",
-    "category": "quality-assurance",
-    "tags": ["质量审核", "逻辑检验", "修订管理", "问题分析", "内容批准"]
-  }
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "review-workflow",
+      "name": "质量审核"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1.0.0"
 }
